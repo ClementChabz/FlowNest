@@ -48,3 +48,10 @@ app.get('/api/moods', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Backend lancé sur http://localhost:${PORT}`);
 });
+
+
+process.on('SIGINT', async () => {
+    await mongoose.disconnect();
+    console.log('🛑 Connexion MongoDB fermée');
+    process.exit(0);
+  });
