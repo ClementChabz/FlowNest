@@ -50,10 +50,9 @@ export default function HomeScreen() {
     };
     checkMood();
   }, []);
-
   const handleSelectMood = async (emoji: string) => {
     const date = dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD');
-    
+  
     try {
       const res = await fetch('https://flownest.onrender.com/api/mood', {
         method: 'POST',
@@ -63,20 +62,25 @@ export default function HomeScreen() {
         body: JSON.stringify({
           date,
           mood: emoji,
-          note: '', // tu peux ajouter un champ texte plus tard
+          note: '', // à personnaliser si tu ajoutes un champ plus tard
         }),
       });
-      console.log('Post')
+  
+      console.log('status:', res.status);
+  
+      const data = await res.json();
+      console.log('data:', data);
+  
       if (!res.ok) throw new Error('Erreur lors de l\'envoi');
   
       await AsyncStorage.setItem(todayKey, emoji);
       setSelected(emoji);
       setMoodSet(true);
-    } catch (err) {
-      console.error('❌ Erreur en envoyant l\'humeur :', err);
-      // Optionnel : toast ou message d'erreur
+    } catch (err: any) {
+      console.error('❌ Erreur en envoyant l\'humeur :', err.message || err);
     }
   };
+  
   
 
   return (
@@ -117,7 +121,7 @@ export default function HomeScreen() {
         setSelected(null);
       }}>
         <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 8 }}>
-          ➕ Simuler un jour de plus
+          ➕ Simuler un jour de plusosndjkd
         </Text>
       </Pressable>
 
