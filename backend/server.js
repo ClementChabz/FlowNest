@@ -46,8 +46,13 @@ app.get('/api/moods', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Backend lancé sur http://localhost:${PORT}`);
+  const baseURL = process.env.RENDER_EXTERNAL_URL
+    ? `https://${process.env.RENDER_EXTERNAL_URL}`
+    : `http://localhost:${PORT}`;
+
+  console.log(`🚀 Backend lancé sur ${baseURL}`);
 });
+
 
 
 process.on('SIGINT', async () => {
