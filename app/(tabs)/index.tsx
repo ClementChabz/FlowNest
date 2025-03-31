@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from 'dayjs';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemeContext } from '@react-navigation/native';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -65,7 +66,7 @@ export default function HomeScreen() {
           note: '', // tu peux ajouter un champ texte plus tard
         }),
       });
-  
+      console.log('Post')
       if (!res.ok) throw new Error('Erreur lors de l\'envoi');
   
       await AsyncStorage.setItem(todayKey, emoji);
