@@ -51,10 +51,32 @@ export default function HomeScreen() {
   }, []);
 
   const handleSelectMood = async (emoji: string) => {
-    await AsyncStorage.setItem(todayKey, emoji);
-    setSelected(emoji);
-    setMoodSet(true);
+    const date = dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD');
+    
+    try {
+      const res = await fetch('https://https://flownest.onrender.com/api/mood', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date,
+          mood: emoji,
+          note: '', // tu peux ajouter un champ texte plus tard
+        }),
+      });
+  
+      if (!res.ok) throw new Error('Erreur lors de l\'envoi');
+  
+      await AsyncStorage.setItem(todayKey, emoji);
+      setSelected(emoji);
+      setMoodSet(true);
+    } catch (err) {
+      console.error('❌ Erreur en envoyant l\'humeur :', err);
+      // Optionnel : toast ou message d'erreur
+    }
   };
+  
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>

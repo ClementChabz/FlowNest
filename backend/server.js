@@ -1,43 +1,45 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import Mood from './models/moods.js'; // 👈 Ton modèle mongoose
+import express from 'express'; //framework express pour créer un serveur web en node.js
+import mongoose from 'mongoose'; //bibliothèque qui facilite l'interaction avec la DBmogodb
+import cors from 'cors';  //ca c'est Cross-Origin resource Sharing qui permet de traiter les requetes qui viennt d'un autre domaine 
+import dotenv from 'dotenv'; //pour pouvoir importer les info secretes du .env
+import Mood from './models/moods.js'; // Le modèle mongoose (collection Mood) défini en moods.js
 
-dotenv.config();
+dotenv.config();  //charge les variables de .env
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
+const app = express();  //créé une instance d'application express (ca gere les routes, middlewares..)
 const PORT = process.env.PORT || 5000;
+
+app.use(cors());//midlleware: peremet au serveur d'acceter les HTTP qui viennent de domaines différents
+app.use(express.json());  //middleware: permet a aexpress d'interpreter des Json
+
+
 
 // 🔗 Connexion MongoDB Atlas
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI)  //pour se connecter a la DB via l'url secret !!
   .then(() => console.log('✅ Connexion MongoDB réussie'))
   .catch((err) => console.error('❌ Erreur MongoDB :', err));
 
 // 🔹 POST : Enregistrer ou mettre à jour une humeur
-app.post('/api/mood', async (req, res) => {
+app.post('/api/mood', async (req, res) => { //request, Response
   try {
     const { date, mood, note } = req.body;
     const saved = await Mood.findOneAndUpdate(
-      { date },
-      { mood, note },
-      { upsert: true, new: true }
+      { date },   //critère de recherche (humeur avec la meme date)
+      { mood, note },  //ce qu'on veut modif ou enregistrer
+      { upsert: true, new: true } //upsert : on créé si ca existe pas 
     );
     res.json(saved);
-  } catch (error) {
-    console.error('❌ POST /api/mood error:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+  } catch (error) {  //si une erreur survient
+    console.error('❌ POST /api/mood error:', error);  //on l'affiche
+    res.status(500).json({ error: 'Erreur serveur' });  
   }
 });
 
 // 🔹 GET : Récupérer l'historique des humeurs
-app.get('/api/moods', async (req, res) => {
+app.get('/api/moods', async (req, res) => {  //attention au pluriel (get tous: c'est la convention )
   try {
-    const moods = await Mood.find().sort({ date: -1 }).limit(50);
+    const moods = await Mood.find().sort({ date: -1 }).limit(365);
     res.json(moods);
   } catch (error) {
     console.error('❌ GET /api/moods error:', error);
@@ -45,8 +47,8 @@ app.get('/api/moods', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  const baseURL = process.env.RENDER_EXTERNAL_URL
+app.listen(PORT, () => {  //on ecoute sur le port du serveur 
+  const baseURL = process.env.RENDER_EXTERNAL_URL  //variable d’environnement fournie automatiquement par Render.com
     ? `https://${process.env.RENDER_EXTERNAL_URL}`
     : `http://localhost:${PORT}`;
 
@@ -60,3 +62,4 @@ process.on('SIGINT', async () => {
     console.log('🛑 Connexion MongoDB fermée');
     process.exit(0);
   });
+
