@@ -54,7 +54,7 @@ export default function HomeScreen() {
     const date = dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD');
     
     try {
-      const res = await fetch('https://https://flownest.onrender.com/api/mood', {
+      const res = await fetch('https://flownest.onrender.com/api/mood', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
