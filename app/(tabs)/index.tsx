@@ -121,7 +121,7 @@ export default function HomeScreen() {
         setSelected(null);
       }}>
         <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 8 }}>
-          ➕ Simuler un jour de plusosndjkd
+          ➕ Simuler un jour de plus
         </Text>
       </Pressable>
 
