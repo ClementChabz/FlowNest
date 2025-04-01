@@ -1,4 +1,4 @@
-// Nouvelle approche : affichage du mois avec chevrons < > pour navigation
+// Nouvelle approche : affichage du mois avec chevrons < > pour navigation et données depuis MongoDB
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -10,14 +10,14 @@ import {
   Pressable,
 } from 'react-native';
 import { useAppTheme } from '../../theme/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import dayjs from 'dayjs';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import dayjs from 'dayjs';
 
 const screenWidth = Dimensions.get('window').width;
 const totalMonthsPast = 18;
 const totalMonthsFuture = 18;
 const totalMonths = totalMonthsPast + totalMonthsFuture + 1;
+const BACKEND_URL = 'https://flownest.onrender.com'; // 🔗 ton backend en ligne
 
 export default function ExploreScreen() {
   const { theme } = useAppTheme();
@@ -26,7 +26,6 @@ export default function ExploreScreen() {
   const textColor = isDark ? '#fff' : '#000';
 
   const [moodHistory, setMoodHistory] = useState<{ date: string; mood: string }[]>([]);
-  const [hasFakeDates, setHasFakeDates] = useState(false);
   const [months, setMonths] = useState<{ label: string; weeks: (string | null)[][] }[]>([]);
   const [activeIndex, setActiveIndex] = useState(totalMonthsPast);
   const flatListRef = useRef<FlatList>(null);
@@ -43,27 +42,12 @@ export default function ExploreScreen() {
   }, [months]);
 
   const fetchMoodHistory = async () => {
-    const allKeys = await AsyncStorage.getAllKeys();
-    const moodKeys = allKeys.filter((key) => key.startsWith('mood-'));
-    const entries = await AsyncStorage.multiGet(moodKeys);
-    const parsed = entries.map(([key, value]) => ({
-      date: key.replace('mood-', ''),
-      mood: value ?? '',
-    }));
-    parsed.sort((a, b) => (a.date < b.date ? 1 : -1));
-    setMoodHistory(parsed);
-    setHasFakeDates(parsed.some(entry => dayjs(entry.date).isAfter(dayjs())));
-  };
-
-  const removeFakeDates = async () => {
-    const allKeys = await AsyncStorage.getAllKeys();
-    const moodKeys = allKeys.filter((key) => key.startsWith('mood-'));
-    const today = dayjs().format('YYYY-MM-DD');
-    const toRemove = moodKeys.filter((key) => dayjs(key.replace('mood-', '')).isAfter(today));
-    if (toRemove.length > 0) {
-      await AsyncStorage.multiRemove(toRemove);
-      setHasFakeDates(false);
-      fetchMoodHistory();
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/moods`);
+      const data = await res.json();
+      setMoodHistory(data);
+    } catch (error) {
+      console.error('Erreur fetch moods MongoDB :', error);
     }
   };
 
@@ -114,7 +98,7 @@ export default function ExploreScreen() {
   };
 
   const renderMonth = ({ item }: { item: { label: string; weeks: (string | null)[][] } }) => (
-    <View style={[styles.monthContainer, { width: screenWidth }]}>
+    <View style={[styles.monthContainer, { width: screenWidth }]}> 
       {item.weeks.map((week, i) => (
         <View key={i} style={styles.weekRow}>
           {week.map((date, j) => {
@@ -153,14 +137,6 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <Text style={[styles.title, { color: textColor }]}>🧠 Historique des humeurs</Text>
-
-      {hasFakeDates && (
-        <Pressable onPress={removeFakeDates} style={{ alignSelf: 'center', marginBottom: 16 }}>
-          <Text style={{ color: textColor, textDecorationLine: 'underline' }}>
-            🧹 Enlever les dates simulées
-          </Text>
-        </Pressable>
-      )}
 
       <View style={styles.monthHeader}>
         <Pressable onPress={handlePrev}><Text style={{ color: textColor }}>{'<'}</Text></Pressable>
