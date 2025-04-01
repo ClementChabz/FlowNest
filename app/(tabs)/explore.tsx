@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+// Nouvelle approche : affichage du mois avec chevrons < > pour navigation
+
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +8,7 @@ import {
   FlatList,
   Dimensions,
   Pressable,
+  RefreshControl,
   ActivityIndicator,
 } from 'react-native';
 import { useAppTheme } from '../../theme/ThemeContext';
@@ -15,6 +18,7 @@ import dayjs from 'dayjs';
 const screenWidth = Dimensions.get('window').width;
 const totalMonthsPast = 18;
 const totalMonthsFuture = 18;
+const totalMonths = totalMonthsPast + totalMonthsFuture + 1;
 
 export default function ExploreScreen() {
   const { theme } = useAppTheme();
@@ -22,10 +26,12 @@ export default function ExploreScreen() {
   const backgroundColor = isDark ? '#000' : '#fff';
   const textColor = isDark ? '#fff' : '#000';
 
-  const [moodHistory, setMoodHistory] = useState<{ date: string; mood: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [moodMap, setMoodMap] = useState<Map<string, string>>(new Map());
+  const [hasFakeDates, setHasFakeDates] = useState(false);
   const [months, setMonths] = useState<{ label: string; weeks: (string | null)[][] }[]>([]);
   const [activeIndex, setActiveIndex] = useState(totalMonthsPast);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -33,26 +39,39 @@ export default function ExploreScreen() {
     generateMonths();
   }, []);
 
+  useEffect(() => {
+    if (months.length > 0 && flatListRef.current) {
+      flatListRef.current.scrollToIndex({ index: totalMonthsPast, animated: false });
+    }
+  }, [months]);
+
   const fetchMoodHistory = async () => {
     try {
+      setLoading(true);
       const response = await fetch('https://flownest.onrender.com/api/moods');
       const data = await response.json();
-      setMoodHistory(data);
-    } catch (error) {
-      console.error('❌ Erreur lors de la récupération des humeurs :', error);
+      const map = new Map<string, string>();
+      data.forEach((item: { date: string; mood: string }) => {
+        map.set(item.date, item.mood);
+      });
+      setMoodMap(map);
+      setHasFakeDates(data.some((item: { date: string }) => dayjs(item.date).isAfter(dayjs())));
+    } catch (err) {
+      console.error('Erreur de chargement des humeurs :', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const moodMap = useMemo(() => {
-    const map = new Map();
-    moodHistory.forEach(entry => {
-      const formatted = dayjs(entry.date).format('YYYY-MM-DD');
-      map.set(formatted, entry.mood);
-    });
-    return map;
-  }, [moodHistory]);
+  const removeFakeDates = async () => {
+    try {
+      await fetch('https://flownest.onrender.com/api/moods'); // Utilisé ici uniquement pour simuler le rafraîchissement
+      fetchMoodHistory();
+    } catch (err) {
+      console.error('Erreur suppression des dates fake :', err);
+    }
+  };
 
   const generateMonthGrid = (offset: number) => {
     const start = dayjs().add(offset, 'month').startOf('month');
@@ -105,7 +124,7 @@ export default function ExploreScreen() {
       {item.weeks.map((week, i) => (
         <View key={i} style={styles.weekRow}>
           {week.map((date, j) => {
-            const mood = date ? moodMap.get(dayjs(date).format('YYYY-MM-DD')) ?? '' : '';
+            const mood = date ? moodMap.get(date) ?? '' : '';
             return (
               <View
                 key={j}
@@ -141,7 +160,6 @@ export default function ExploreScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={{ color: textColor, marginTop: 12 }}>Chargement des humeurs...</Text>
       </SafeAreaView>
     );
   }
@@ -150,9 +168,17 @@ export default function ExploreScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <Text style={[styles.title, { color: textColor }]}>🧠 Historique des humeurs</Text>
 
+      {hasFakeDates && (
+        <Pressable onPress={removeFakeDates} style={{ alignSelf: 'center', marginBottom: 16 }}>
+          <Text style={{ color: textColor, textDecorationLine: 'underline' }}>
+            🧹 Enlever les dates simulées
+          </Text>
+        </Pressable>
+      )}
+
       <View style={styles.monthHeader}>
         <Pressable onPress={handlePrev}><Text style={{ color: textColor }}>{'<'}</Text></Pressable>
-        <Text style={[styles.monthLabel, { color: textColor }]}>{months[activeIndex]?.label}</Text>
+        <Text style={[styles.monthLabel, { color: textColor }]}> {months[activeIndex]?.label} </Text>
         <Pressable onPress={handleNext}><Text style={{ color: textColor }}>{'>'}</Text></Pressable>
       </View>
 
@@ -171,6 +197,16 @@ export default function ExploreScreen() {
         scrollEventThrottle={16}
         initialScrollIndex={totalMonthsPast}
         getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchMoodHistory();
+            }}
+            tintColor={textColor}
+          />
+        }
       />
     </SafeAreaView>
   );
