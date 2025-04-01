@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAppTheme } from '../../theme/ThemeContext';
-import { useFocusEffect } from 'expo-router';
-import dayjs from 'dayjs';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import dayjs from 'dayjs';
 
 const screenWidth = Dimensions.get('window').width;
 const totalMonthsPast = 18;
@@ -24,55 +23,46 @@ export default function ExploreScreen() {
   const textColor = isDark ? '#fff' : '#000';
 
   const [moodHistory, setMoodHistory] = useState<{ date: string; mood: string }[]>([]);
+  const [loading, setLoading] = useState(true);
   const [months, setMonths] = useState<{ label: string; weeks: (string | null)[][] }[]>([]);
   const [activeIndex, setActiveIndex] = useState(totalMonthsPast);
-  const [loading, setLoading] = useState(true);
-
   const flatListRef = useRef<FlatList>(null);
 
-  const BACKEND_URL = 'https://<TON-BACKEND-DEPLOYE>'; // 🔁 À remplacer par ton vrai backend
-
-  // Appel automatique lors du focus de l'écran
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchMoodHistory();
-    }, [])
-  );
-
   useEffect(() => {
+    fetchMoodHistory();
     generateMonths();
   }, []);
 
-  useEffect(() => {
-    if (months.length > 0 && flatListRef.current) {
-      flatListRef.current.scrollToIndex({ index: totalMonthsPast, animated: false });
-    }
-  }, [months]);
-
   const fetchMoodHistory = async () => {
-    setLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/moods`);
+      const response = await fetch('https://flownest.onrender.com/api/moods');
       const data = await response.json();
       setMoodHistory(data);
     } catch (error) {
-      console.error('❌ Erreur de récupération des humeurs:', error);
+      console.error('❌ Erreur lors de la récupération des humeurs :', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const moodMap = useMemo(() => {
+    const map = new Map();
+    moodHistory.forEach(entry => {
+      const formatted = dayjs(entry.date).format('YYYY-MM-DD');
+      map.set(formatted, entry.mood);
+    });
+    return map;
+  }, [moodHistory]);
+
   const generateMonthGrid = (offset: number) => {
     const start = dayjs().add(offset, 'month').startOf('month');
     const end = start.endOf('month');
-    const startDay = start.day(); // 0 = dimanche
+    const startDay = start.day();
     const totalDays = end.date();
     const grid: (string | null)[][] = [];
     let currentWeek: (string | null)[] = [];
-
-    const emptyStart = startDay === 0 ? 6 : startDay - 1; // Commencer le lundi
+    const emptyStart = startDay === 0 ? 6 : startDay - 1;
     for (let i = 0; i < emptyStart; i++) currentWeek.push(null);
-
     for (let day = 1; day <= totalDays; day++) {
       const date = start.date(day).format('YYYY-MM-DD');
       currentWeek.push(date);
@@ -81,12 +71,10 @@ export default function ExploreScreen() {
         currentWeek = [];
       }
     }
-
     if (currentWeek.length > 0) {
       while (currentWeek.length < 7) currentWeek.push(null);
       grid.push(currentWeek);
     }
-
     return {
       label: start.format('MMMM YYYY'),
       weeks: grid,
@@ -103,11 +91,11 @@ export default function ExploreScreen() {
 
   const moodColor = (mood: string) => {
     switch (mood) {
-      case '😄': return '#4ade80'; // vert
-      case '😊': return '#a3e635'; // vert-jaune
-      case '😐': return '#facc15'; // jaune
-      case '😔': return '#f97316'; // orange
-      case '😢': return '#ef4444'; // rouge
+      case '😄': return '#4ade80';
+      case '😊': return '#a3e635';
+      case '😐': return '#facc15';
+      case '😔': return '#f97316';
+      case '😢': return '#ef4444';
       default: return 'transparent';
     }
   };
@@ -117,7 +105,7 @@ export default function ExploreScreen() {
       {item.weeks.map((week, i) => (
         <View key={i} style={styles.weekRow}>
           {week.map((date, j) => {
-            const mood = date ? (moodHistory.find((m) => m.date === date)?.mood ?? '') : '';
+            const mood = date ? moodMap.get(dayjs(date).format('YYYY-MM-DD')) ?? '' : '';
             return (
               <View
                 key={j}
@@ -149,42 +137,41 @@ export default function ExploreScreen() {
     }
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={{ color: textColor, marginTop: 12 }}>Chargement des humeurs...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <Text style={[styles.title, { color: textColor }]}>🧠 Historique des humeurs</Text>
 
-      {/* 🔄 Header mois avec chevrons */}
       <View style={styles.monthHeader}>
         <Pressable onPress={handlePrev}><Text style={{ color: textColor }}>{'<'}</Text></Pressable>
-        <Text style={[styles.monthLabel, { color: textColor }]}> {months[activeIndex]?.label} </Text>
+        <Text style={[styles.monthLabel, { color: textColor }]}>{months[activeIndex]?.label}</Text>
         <Pressable onPress={handleNext}><Text style={{ color: textColor }}>{'>'}</Text></Pressable>
       </View>
 
-      {/* ⏳ Loading ou Calendrier */}
-      {loading ? (
-        <ActivityIndicator size="large" color={textColor} style={{ marginTop: 64 }} />
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={months}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          renderItem={renderMonth}
-          keyExtractor={(item) => item.label}
-          onMomentumScrollEnd={(e) => {
-            const index = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
-            setActiveIndex(index);
-          }}
-          scrollEventThrottle={16}
-          initialScrollIndex={totalMonthsPast}
-          getItemLayout={(_, index) => ({
-            length: screenWidth,
-            offset: screenWidth * index,
-            index,
-          })}
-        />
-      )}
+      <FlatList
+        ref={flatListRef}
+        data={months}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        renderItem={renderMonth}
+        keyExtractor={(item) => item.label}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+          setActiveIndex(index);
+        }}
+        scrollEventThrottle={16}
+        initialScrollIndex={totalMonthsPast}
+        getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
+      />
     </SafeAreaView>
   );
 }
