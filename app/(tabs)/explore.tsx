@@ -1,5 +1,3 @@
-// Nouvelle approche : affichage du mois avec chevrons < > pour navigation et données depuis MongoDB
-
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -8,16 +6,16 @@ import {
   FlatList,
   Dimensions,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useAppTheme } from '../../theme/ThemeContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import dayjs from 'dayjs';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const screenWidth = Dimensions.get('window').width;
 const totalMonthsPast = 18;
 const totalMonthsFuture = 18;
-const totalMonths = totalMonthsPast + totalMonthsFuture + 1;
-const BACKEND_URL = 'https://flownest.onrender.com'; // 🔗 ton backend en ligne
 
 export default function ExploreScreen() {
   const { theme } = useAppTheme();
@@ -28,10 +26,20 @@ export default function ExploreScreen() {
   const [moodHistory, setMoodHistory] = useState<{ date: string; mood: string }[]>([]);
   const [months, setMonths] = useState<{ label: string; weeks: (string | null)[][] }[]>([]);
   const [activeIndex, setActiveIndex] = useState(totalMonthsPast);
+  const [loading, setLoading] = useState(true);
+
   const flatListRef = useRef<FlatList>(null);
 
+  const BACKEND_URL = 'https://<TON-BACKEND-DEPLOYE>'; // 🔁 À remplacer par ton vrai backend
+
+  // Appel automatique lors du focus de l'écran
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchMoodHistory();
+    }, [])
+  );
+
   useEffect(() => {
-    fetchMoodHistory();
     generateMonths();
   }, []);
 
@@ -42,24 +50,29 @@ export default function ExploreScreen() {
   }, [months]);
 
   const fetchMoodHistory = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/moods`);
-      const data = await res.json();
+      const response = await fetch(`${BACKEND_URL}/api/moods`);
+      const data = await response.json();
       setMoodHistory(data);
     } catch (error) {
-      console.error('Erreur fetch moods MongoDB :', error);
+      console.error('❌ Erreur de récupération des humeurs:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const generateMonthGrid = (offset: number) => {
     const start = dayjs().add(offset, 'month').startOf('month');
     const end = start.endOf('month');
-    const startDay = start.day();
+    const startDay = start.day(); // 0 = dimanche
     const totalDays = end.date();
     const grid: (string | null)[][] = [];
     let currentWeek: (string | null)[] = [];
-    const emptyStart = startDay === 0 ? 6 : startDay - 1;
+
+    const emptyStart = startDay === 0 ? 6 : startDay - 1; // Commencer le lundi
     for (let i = 0; i < emptyStart; i++) currentWeek.push(null);
+
     for (let day = 1; day <= totalDays; day++) {
       const date = start.date(day).format('YYYY-MM-DD');
       currentWeek.push(date);
@@ -68,10 +81,12 @@ export default function ExploreScreen() {
         currentWeek = [];
       }
     }
+
     if (currentWeek.length > 0) {
       while (currentWeek.length < 7) currentWeek.push(null);
       grid.push(currentWeek);
     }
+
     return {
       label: start.format('MMMM YYYY'),
       weeks: grid,
@@ -88,17 +103,17 @@ export default function ExploreScreen() {
 
   const moodColor = (mood: string) => {
     switch (mood) {
-      case '😄': return '#4ade80';
-      case '😊': return '#a3e635';
-      case '😐': return '#facc15';
-      case '😔': return '#f97316';
-      case '😢': return '#ef4444';
+      case '😄': return '#4ade80'; // vert
+      case '😊': return '#a3e635'; // vert-jaune
+      case '😐': return '#facc15'; // jaune
+      case '😔': return '#f97316'; // orange
+      case '😢': return '#ef4444'; // rouge
       default: return 'transparent';
     }
   };
 
   const renderMonth = ({ item }: { item: { label: string; weeks: (string | null)[][] } }) => (
-    <View style={[styles.monthContainer, { width: screenWidth }]}> 
+    <View style={[styles.monthContainer, { width: screenWidth }]}>
       {item.weeks.map((week, i) => (
         <View key={i} style={styles.weekRow}>
           {week.map((date, j) => {
@@ -138,28 +153,38 @@ export default function ExploreScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <Text style={[styles.title, { color: textColor }]}>🧠 Historique des humeurs</Text>
 
+      {/* 🔄 Header mois avec chevrons */}
       <View style={styles.monthHeader}>
         <Pressable onPress={handlePrev}><Text style={{ color: textColor }}>{'<'}</Text></Pressable>
         <Text style={[styles.monthLabel, { color: textColor }]}> {months[activeIndex]?.label} </Text>
         <Pressable onPress={handleNext}><Text style={{ color: textColor }}>{'>'}</Text></Pressable>
       </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={months}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        renderItem={renderMonth}
-        keyExtractor={(item) => item.label}
-        onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
-          setActiveIndex(index);
-        }}
-        scrollEventThrottle={16}
-        initialScrollIndex={totalMonthsPast}
-        getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
-      />
+      {/* ⏳ Loading ou Calendrier */}
+      {loading ? (
+        <ActivityIndicator size="large" color={textColor} style={{ marginTop: 64 }} />
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={months}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          renderItem={renderMonth}
+          keyExtractor={(item) => item.label}
+          onMomentumScrollEnd={(e) => {
+            const index = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+            setActiveIndex(index);
+          }}
+          scrollEventThrottle={16}
+          initialScrollIndex={totalMonthsPast}
+          getItemLayout={(_, index) => ({
+            length: screenWidth,
+            offset: screenWidth * index,
+            index,
+          })}
+        />
+      )}
     </SafeAreaView>
   );
 }
