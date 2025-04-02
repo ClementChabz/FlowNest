@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import Mood from './models/moods.js';
+import User from './models/users.js'; // 🆕 Import du modèle User
 import authRoutes from './routes/auth.js';
 import verifyToken from './middleware/verifyToken.js';
 
@@ -24,7 +25,7 @@ mongoose
   .then(() => console.log('✅ Connexion MongoDB réussie'))
   .catch((err) => console.error('❌ Erreur MongoDB :', err));
 
-// 🔒 POST : Enregistrer ou mettre à jour une humeur (authentifié)
+// 🔒 POST : Enregistrer ou mettre à jour une humeur
 app.post('/api/mood', verifyToken, async (req, res) => {
   const { date, mood, note } = req.body;
   const userId = req.user.id;
@@ -42,7 +43,7 @@ app.post('/api/mood', verifyToken, async (req, res) => {
   }
 });
 
-// 🔒 GET : Historique des humeurs (authentifié)
+// 🔒 GET : Historique des humeurs
 app.get('/api/moods', verifyToken, async (req, res) => {
   const userId = req.user.id;
 
@@ -53,6 +54,19 @@ app.get('/api/moods', verifyToken, async (req, res) => {
     res.json(moods);
   } catch (error) {
     console.error('❌ GET /api/moods error:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// 🔒 GET : Infos utilisateur connecté
+app.get('/api/me', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('email');
+    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+
+    res.json({ email: user.email });
+  } catch (error) {
+    console.error('❌ GET /api/me error:', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

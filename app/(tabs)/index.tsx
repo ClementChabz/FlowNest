@@ -25,6 +25,8 @@ export default function HomeScreen() {
 
   const circlePosition = useRef(new Animated.Value(isDark ? 1 : 0)).current;
 
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
   useEffect(() => {
     Animated.timing(circlePosition, {
       toValue: isDark ? 1 : 0,
@@ -34,10 +36,33 @@ export default function HomeScreen() {
     }).start();
   }, [isDark]);
 
-  const translateX = circlePosition.interpolate({
-    inputRange: [0, 1],
-    outputRange: [4, 48],
-  });
+  // ✅ Check if user is logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        try {
+          const res = await fetch('https://flownest.onrender.com/api/me', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setUserEmail(data.email);
+          } else {
+            setUserEmail(null);
+          }
+        } catch (err) {
+          setUserEmail(null);
+        }
+      } else {
+        setUserEmail(null);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const emojis = ['😄', '😊', '😐', '😔', '😢'];
   const [moodSet, setMoodSet] = useState(false);
@@ -58,16 +83,14 @@ export default function HomeScreen() {
     const date = dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD');
 
     try {
+      const token = await AsyncStorage.getItem('token');
       const res = await fetch('https://flownest.onrender.com/api/mood', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          date,
-          mood: emoji,
-          note: '',
-        }),
+        body: JSON.stringify({ date, mood: emoji, note: '' }),
       });
 
       const data = await res.json();
@@ -77,12 +100,17 @@ export default function HomeScreen() {
       setSelected(emoji);
       setMoodSet(true);
     } catch (err: any) {
-      console.error('❌ Erreur en envoyant l\'humeur :', err.message || err);
+      console.error('❌ Erreur humeur :', err.message || err);
     }
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
+      {/* ✅ Affichage statut utilisateur */}
+      <Text style={{ color: textColor, textAlign: 'center', marginBottom: 12 }}>
+        {userEmail ? `👋 Bonjour ${userEmail}` : '❌ Vous n\'êtes pas connecté'}
+      </Text>
+
       {/* 🌗 Thème */}
       <Pressable
         onPress={toggleTheme}
@@ -94,7 +122,7 @@ export default function HomeScreen() {
         </Text>
       </Pressable>
 
-      {/* 🧠 Mood Tracker */}
+      {/* Mood Tracker */}
       {!moodSet && (
         <View style={styles.moodContainer}>
           <Text style={[styles.subtitle, { color: textColor }]}>Ton humeur aujourd’hui ?</Text>
