@@ -6,6 +6,7 @@ import {
   Pressable,
   Animated,
   Easing,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '../../theme/ThemeContext';
@@ -26,6 +27,7 @@ export default function HomeScreen() {
   const circlePosition = useRef(new Animated.Value(isDark ? 1 : 0)).current;
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
     Animated.timing(circlePosition, {
@@ -36,16 +38,13 @@ export default function HomeScreen() {
     }).start();
   }, [isDark]);
 
-  // ✅ Check if user is logged in
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
-        try {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
           const res = await fetch('https://flownest.onrender.com/api/me', {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           });
           const data = await res.json();
           if (res.ok) {
@@ -53,14 +52,16 @@ export default function HomeScreen() {
           } else {
             setUserEmail(null);
           }
-        } catch (err) {
+        } else {
           setUserEmail(null);
         }
-      } else {
+      } catch (err) {
+        console.error('❌ Erreur /api/me :', err);
         setUserEmail(null);
+      } finally {
+        setLoadingUser(false);
       }
     };
-
     checkAuth();
   }, []);
 
@@ -77,11 +78,10 @@ export default function HomeScreen() {
       }
     };
     checkMood();
-  }, []);
+  }, [todayKey]);
 
   const handleSelectMood = async (emoji: string) => {
     const date = dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD');
-
     try {
       const token = await AsyncStorage.getItem('token');
       const res = await fetch('https://flownest.onrender.com/api/mood', {
@@ -94,7 +94,7 @@ export default function HomeScreen() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error('Erreur lors de l\'envoi');
+      if (!res.ok) throw new Error(data?.error || 'Erreur');
 
       await AsyncStorage.setItem(todayKey, emoji);
       setSelected(emoji);
@@ -106,10 +106,14 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
-      {/* ✅ Affichage statut utilisateur */}
-      <Text style={{ color: textColor, textAlign: 'center', marginBottom: 12 }}>
-        {userEmail ? `👋 Bonjour ${userEmail}` : '❌ Vous n\'êtes pas connecté'}
-      </Text>
+      {/* ✅ Message de connexion */}
+      {loadingUser ? (
+        <ActivityIndicator size="small" />
+      ) : (
+        <Text style={{ color: textColor, textAlign: 'center', marginBottom: 12 }}>
+          {userEmail ? `👋 Bonjour ${userEmail}` : '❌ Vous n\'êtes pas connecté'}
+        </Text>
+      )}
 
       {/* 🌗 Thème */}
       <Pressable
@@ -122,7 +126,6 @@ export default function HomeScreen() {
         </Text>
       </Pressable>
 
-      {/* Mood Tracker */}
       {!moodSet && (
         <View style={styles.moodContainer}>
           <Text style={[styles.subtitle, { color: textColor }]}>Ton humeur aujourd’hui ?</Text>
@@ -136,7 +139,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Simulateur de date */}
       <View style={{ alignItems: 'center', marginBottom: 24 }}>
         <Text style={{ color: textColor, fontSize: 14, opacity: 0.7 }}>
           Date simulée : {dayjs().add(fakeDateOffset, 'day').format('DD MMM YYYY')}
@@ -165,10 +167,8 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Titre */}
       <Text style={[styles.title, { color: textColor }]}>Bienvenue sur Flownest 🌿</Text>
 
-      {/* Boutons principaux */}
       <View style={styles.buttonContainer}>
         <Pressable
           onPress={() => router.push('/lecture')}
@@ -184,18 +184,12 @@ export default function HomeScreen() {
           <Text style={styles.actionButtonText}>💼 Travail</Text>
         </Pressable>
 
-        {/* 🚪 Login / Signup */}
-        <Pressable
-          onPress={() => router.push('/auth/login')}
-          style={[styles.authButton]}
-        >
+        {/* Auth */}
+        <Pressable onPress={() => router.push('/auth/login')} style={[styles.authButton]}>
           <Text style={styles.authButtonText}>🔐 Se connecter</Text>
         </Pressable>
 
-        <Pressable
-          onPress={() => router.push('/auth/signup')}
-          style={[styles.authButton]}
-        >
+        <Pressable onPress={() => router.push('/auth/signup')} style={[styles.authButton]}>
           <Text style={styles.authButtonText}>🆕 Créer un compte</Text>
         </Pressable>
       </View>
@@ -204,85 +198,19 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: 80,
-    height: 36,
-    borderRadius: 18,
-    padding: 4,
-    marginBottom: 24,
-  },
-  circle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#fff',
-    position: 'absolute',
-    top: 4,
-  },
-  switchText: {
-    marginLeft: 48,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  moodContainer: {
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  emojiRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    marginTop: 8,
-  },
-  emoji: {
-    fontSize: 28,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 18,
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    gap: 12,
-  },
-  actionButton: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginVertical: 6,
-  },
-  actionButtonDark: {
-    backgroundColor: '#2563eb',
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  authButton: {
-    backgroundColor: '#e5e7eb',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  authButtonText: {
-    color: '#111',
-    fontSize: 16,
-    fontWeight: '500',
-  },
+  container: { flex: 1, padding: 24, justifyContent: 'center' },
+  switchContainer: { flexDirection: 'row', alignItems: 'center', width: 80, height: 36, borderRadius: 18, padding: 4, marginBottom: 24 },
+  circle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#fff', position: 'absolute', top: 4 },
+  switchText: { marginLeft: 48, fontSize: 16, fontWeight: '600' },
+  moodContainer: { marginBottom: 24, alignItems: 'center' },
+  emojiRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 8 },
+  emoji: { fontSize: 28 },
+  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
+  subtitle: { fontSize: 18, marginBottom: 32, textAlign: 'center' },
+  buttonContainer: { gap: 12 },
+  actionButton: { backgroundColor: '#3b82f6', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: 'center', marginVertical: 6 },
+  actionButtonDark: { backgroundColor: '#2563eb' },
+  actionButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  authButton: { backgroundColor: '#e5e7eb', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  authButtonText: { color: '#111', fontSize: 16, fontWeight: '500' },
 });
