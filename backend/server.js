@@ -29,18 +29,33 @@ mongoose
 
 // 🔒 Enregistrer ou mettre à jour une humeur (protégé)
 app.post('/api/mood', verifyToken, async (req, res) => {
-  const { date, mood, note } = req.body;
-  const userId = req.user.id;
+  const { mood, note } = req.body;  // L'humeur et éventuellement une note
+  const userId = req.user.id;  // On récupère l'ID de l'utilisateur à partir du token JWT
+  const today = new Date().toISOString().split('T')[0];  // On récupère la date du jour (format YYYY-MM-DD)
 
   try {
-    const saved = await Mood.findOneAndUpdate(
-      { date, user: userId },
-      { mood, note, user: userId },
-      { upsert: true, new: true }
-    );
-    res.json(saved);
+    // Cherche si l'utilisateur a déjà défini une humeur pour aujourd'hui
+    const existingMood = await Mood.findOne({ user: userId, date: today });
+
+    if (existingMood) {
+      // Si une humeur est déjà enregistrée pour aujourd'hui, on la met à jour
+      existingMood.mood = mood;
+      existingMood.note = note;
+      await existingMood.save();
+      return res.json(existingMood);
+    } else {
+      // Si aucune humeur n'est enregistrée pour aujourd'hui, on crée une nouvelle entrée
+      const newMood = new Mood({
+        date: today,
+        mood,
+        note,
+        user: userId
+      });
+      await newMood.save();
+      return res.status(201).json(newMood);
+    }
   } catch (error) {
-    console.error('❌ POST /api/mood error:', error);
+    console.error('❌ Error setting mood:', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -51,8 +66,7 @@ app.get('/api/moods', verifyToken, async (req, res) => {
 
   try {
     const moods = await Mood.find({ user: userId })
-      .sort({ date: -1 })
-      .limit(365);
+      .sort({ date: -1 });
     res.json(moods);
   } catch (error) {
     console.error('❌ GET /api/moods error:', error);
