@@ -20,6 +20,7 @@ router.post('/signup', async (req, res) => {
 
     res.status(201).json({ message: 'Compte créé' });
   } catch (err) {
+    console.error('Erreur dans /signup:', err); // 👈 ajoute ce log
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
