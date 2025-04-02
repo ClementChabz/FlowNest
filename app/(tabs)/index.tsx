@@ -21,7 +21,7 @@ export default function HomeScreen() {
   const backgroundColor = isDark ? '#000' : '#fff';
   const textColor = isDark ? '#fff' : '#000';
   const [fakeDateOffset, setFakeDateOffset] = useState(0);
-  const todayKey = mood-${dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD')};
+  const todayKey = `mood-${dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD')}`;
 
   const circlePosition = useRef(new Animated.Value(isDark ? 1 : 0)).current;
 
@@ -49,10 +49,13 @@ export default function HomeScreen() {
       if (saved) {
         setSelected(saved);
         setMoodSet(true);
+      } else {
+        setSelected(null);
+        setMoodSet(false);
       }
     };
     checkMood();
-  }, []);
+  }, [fakeDateOffset, todayKey]);
 
   const handleSelectMood = async (emoji: string) => {
     const date = dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD');
@@ -70,7 +73,6 @@ export default function HomeScreen() {
         }),
       });
 
-      const data = await res.json();
       if (!res.ok) throw new Error('Erreur lors de l\'envoi');
 
       await AsyncStorage.setItem(todayKey, emoji);
@@ -82,7 +84,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>      
       {/* 🌗 Thème */}
       <Pressable
         onPress={toggleTheme}
@@ -116,8 +118,6 @@ export default function HomeScreen() {
 
         <Pressable onPress={() => {
           setFakeDateOffset(prev => prev + 1);
-          setMoodSet(false);
-          setSelected(null);
         }}>
           <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 8 }}>
             ➕ Simuler un jour de plus
@@ -125,11 +125,7 @@ export default function HomeScreen() {
         </Pressable>
 
         {fakeDateOffset !== 0 && (
-          <Pressable onPress={() => {
-            setFakeDateOffset(0);
-            setMoodSet(false);
-            setSelected(null);
-          }}>
+          <Pressable onPress={() => setFakeDateOffset(0)}>
             <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 4 }}>
               🔁 Revenir à aujourd’hui
             </Text>
@@ -142,32 +138,16 @@ export default function HomeScreen() {
 
       {/* Boutons principaux */}
       <View style={styles.buttonContainer}>
-        <Pressable
-          onPress={() => router.push('/lecture')}
-          style={[styles.actionButton, isDark && styles.actionButtonDark]}
-        >
+        <Pressable onPress={() => router.push('/lecture')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
           <Text style={styles.actionButtonText}>📚 Lecture</Text>
         </Pressable>
-
-        <Pressable
-          onPress={() => router.push('/work')}
-          style={[styles.actionButton, isDark && styles.actionButtonDark]}
-        >
+        <Pressable onPress={() => router.push('/work')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
           <Text style={styles.actionButtonText}>💼 Travail</Text>
         </Pressable>
-
-        {/* 🚪 Login / Signup */}
-        <Pressable
-          onPress={() => router.push('/auth/login')}
-          style={[styles.authButton]}
-        >
+        <Pressable onPress={() => router.push('/auth/login')} style={styles.authButton}>
           <Text style={styles.authButtonText}>🔐 Se connecter</Text>
         </Pressable>
-
-        <Pressable
-          onPress={() => router.push('/auth/signup')}
-          style={[styles.authButton]}
-        >
+        <Pressable onPress={() => router.push('/auth/signup')} style={styles.authButton}>
           <Text style={styles.authButtonText}>🆕 Créer un compte</Text>
         </Pressable>
       </View>
