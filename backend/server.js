@@ -3,6 +3,9 @@ import mongoose from 'mongoose'; //bibliothèque qui facilite l'interaction avec
 import cors from 'cors';  //ca c'est Cross-Origin resource Sharing qui permet de traiter les requetes qui viennt d'un autre domaine 
 import dotenv from 'dotenv'; //pour pouvoir importer les info secretes du .env
 import Mood from './models/moods.js'; // Le modèle mongoose (collection Mood) défini en moods.js
+import authRoutes from './routes/auth.js';
+import verifyToken from './middleware/verifyToken.js';
+
 
 dotenv.config();  //charge les variables de .env
 
@@ -11,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());//midlleware: peremet au serveur d'acceter les HTTP qui viennent de domaines différents
 app.use(express.json());  //middleware: permet a aexpress d'interpreter des Json
-
+app.use('/api/auth', authRoutes);
 
 
 // 🔗 Connexion MongoDB Atlas
@@ -55,6 +58,23 @@ app.listen(PORT, () => {  //on ecoute sur le port du serveur
   console.log(`🚀 Backend lancé sur ${baseURL}`);
 });
 
+app.post('/api/mood', verifyToken, async (req, res) => {
+  const { date, mood, note } = req.body;
+
+  try {
+    const userId = req.user.id;
+
+    const saved = await Mood.findOneAndUpdate(
+      { date, user: userId },
+      { mood, note, user: userId },
+      { upsert: true, new: true }
+    );
+
+    res.json(saved);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
 
 
 process.on('SIGINT', async () => {

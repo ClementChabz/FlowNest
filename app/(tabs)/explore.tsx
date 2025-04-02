@@ -13,12 +13,12 @@ import {
 } from 'react-native';
 import { useAppTheme } from '../../theme/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from 'dayjs';
 
 const screenWidth = Dimensions.get('window').width;
 const totalMonthsPast = 18;
 const totalMonthsFuture = 18;
-const totalMonths = totalMonthsPast + totalMonthsFuture + 1;
 
 export default function ExploreScreen() {
   const { theme } = useAppTheme();
@@ -48,16 +48,32 @@ export default function ExploreScreen() {
   const fetchMoodHistory = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://flownest.onrender.com/api/moods');
+      const token = await AsyncStorage.getItem('token');
+
+      const response = await fetch('https://flownest.onrender.com/api/moods', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Erreur API:', data);
+        return;
+      }
+
       const map = new Map<string, string>();
       data.forEach((item: { date: string; mood: string }) => {
         map.set(item.date, item.mood);
       });
       setMoodMap(map);
-      setHasFakeDates(data.some((item: { date: string }) => dayjs(item.date).isAfter(dayjs())));
-    } catch (err) {
-      console.error('Erreur de chargement des humeurs :', err);
+
+      setHasFakeDates(
+        data.some((item: { date: string }) => dayjs(item.date).isAfter(dayjs()))
+      );
+    } catch (error) {
+      console.error('❌ fetchMoodHistory error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -66,8 +82,7 @@ export default function ExploreScreen() {
 
   const removeFakeDates = async () => {
     try {
-      await fetch('https://flownest.onrender.com/api/moods'); // Utilisé ici uniquement pour simuler le rafraîchissement
-      fetchMoodHistory();
+      await fetchMoodHistory();
     } catch (err) {
       console.error('Erreur suppression des dates fake :', err);
     }
