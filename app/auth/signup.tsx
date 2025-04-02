@@ -13,7 +13,6 @@ import { useRouter } from 'expo-router';
 
 export default function SignUpScreen() {
   const router = useRouter();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
