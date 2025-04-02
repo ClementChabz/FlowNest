@@ -21,7 +21,7 @@ export default function LoginScreen({ navigation }: Props) {
       const token = res.data.token;
       await AsyncStorage.setItem('token', token);
       Alert.alert('Connexion réussie ✅');
-      navigation.replace('/'); // ou remplace par `navigation.navigate('index')` si tu as nommé ton écran
+      navigation.replace('tabs/index'); // ou remplace par `navigation.navigate('index')` si tu as nommé ton écran
     } catch (err: any) {
       // 👇 Assure-toi que l'erreur a une réponse
       const message = err.response?.data?.error || 'Connexion échouée';
