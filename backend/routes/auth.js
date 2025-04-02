@@ -2,9 +2,9 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import Mood from './models/moods.js';
+import Mood from '../models/moods.js';
 import authRoutes from './routes/auth.js';
-import verifyToken from './middleware/verifyToken.js';
+import verifyToken from '../middleware/verifyToken.js';
 
 dotenv.config();
 
