@@ -1,11 +1,17 @@
-import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Animated,
+  Easing,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '../../theme/ThemeContext';
-import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from 'dayjs';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ThemeContext } from '@react-navigation/native';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -17,8 +23,6 @@ export default function HomeScreen() {
   const [fakeDateOffset, setFakeDateOffset] = useState(0);
   const todayKey = `mood-${dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD')}`;
 
-
-  // Animation du switch thème
   const circlePosition = useRef(new Animated.Value(isDark ? 1 : 0)).current;
 
   useEffect(() => {
@@ -35,7 +39,6 @@ export default function HomeScreen() {
     outputRange: [4, 48],
   });
 
-  // Mood Tracker
   const emojis = ['😄', '😊', '😐', '😔', '😢'];
   const [moodSet, setMoodSet] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -50,9 +53,10 @@ export default function HomeScreen() {
     };
     checkMood();
   }, []);
+
   const handleSelectMood = async (emoji: string) => {
     const date = dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD');
-  
+
     try {
       const res = await fetch('https://flownest.onrender.com/api/mood', {
         method: 'POST',
@@ -62,17 +66,13 @@ export default function HomeScreen() {
         body: JSON.stringify({
           date,
           mood: emoji,
-          note: '', // à personnaliser si tu ajoutes un champ plus tard
+          note: '',
         }),
       });
-  
-      console.log('status:', res.status);
-  
+
       const data = await res.json();
-      console.log('data:', data);
-  
       if (!res.ok) throw new Error('Erreur lors de l\'envoi');
-  
+
       await AsyncStorage.setItem(todayKey, emoji);
       setSelected(emoji);
       setMoodSet(true);
@@ -80,12 +80,10 @@ export default function HomeScreen() {
       console.error('❌ Erreur en envoyant l\'humeur :', err.message || err);
     }
   };
-  
-  
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
-      {/* 🌗 Theme switch */}
+      {/* 🌗 Thème */}
       <Pressable
         onPress={toggleTheme}
         style={[styles.switchContainer, { backgroundColor: isDark ? '#333' : '#e4e4e7' }]}
@@ -110,38 +108,39 @@ export default function HomeScreen() {
         </View>
       )}
 
-    <View style={{ alignItems: 'center', marginBottom: 24 }}>
-      <Text style={{ color: textColor, fontSize: 14, opacity: 0.7 }}>
-        Date simulée : {dayjs().add(fakeDateOffset, 'day').format('DD MMM YYYY')}
-      </Text>
-
-      <Pressable onPress={() => {
-        setFakeDateOffset(prev => prev + 1);
-        setMoodSet(false);
-        setSelected(null);
-      }}>
-        <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 8 }}>
-          ➕ Simuler un jour de plus
+      {/* Simulateur de date */}
+      <View style={{ alignItems: 'center', marginBottom: 24 }}>
+        <Text style={{ color: textColor, fontSize: 14, opacity: 0.7 }}>
+          Date simulée : {dayjs().add(fakeDateOffset, 'day').format('DD MMM YYYY')}
         </Text>
-      </Pressable>
 
-      {fakeDateOffset !== 0 && (
         <Pressable onPress={() => {
-          setFakeDateOffset(0);
+          setFakeDateOffset(prev => prev + 1);
           setMoodSet(false);
           setSelected(null);
         }}>
-          <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 4 }}>
-            🔁 Revenir à aujourd’hui
+          <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 8 }}>
+            ➕ Simuler un jour de plus
           </Text>
         </Pressable>
-      )}
-    </View>
 
+        {fakeDateOffset !== 0 && (
+          <Pressable onPress={() => {
+            setFakeDateOffset(0);
+            setMoodSet(false);
+            setSelected(null);
+          }}>
+            <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 4 }}>
+              🔁 Revenir à aujourd’hui
+            </Text>
+          </Pressable>
+        )}
+      </View>
 
-      {/* CONTENU */}
+      {/* Titre */}
       <Text style={[styles.title, { color: textColor }]}>Bienvenue sur Flownest 🌿</Text>
 
+      {/* Boutons principaux */}
       <View style={styles.buttonContainer}>
         <Pressable
           onPress={() => router.push('/lecture')}
@@ -155,6 +154,21 @@ export default function HomeScreen() {
           style={[styles.actionButton, isDark && styles.actionButtonDark]}
         >
           <Text style={styles.actionButtonText}>💼 Travail</Text>
+        </Pressable>
+
+        {/* 🚪 Login / Signup */}
+        <Pressable
+          onPress={() => router.push('/auth/login')}
+          style={[styles.authButton]}
+        >
+          <Text style={styles.authButtonText}>🔐 Se connecter</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/auth/signup')}
+          style={[styles.authButton]}
+        >
+          <Text style={styles.authButtonText}>🆕 Créer un compte</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -222,7 +236,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: 6,
   },
   actionButtonDark: {
     backgroundColor: '#2563eb',
@@ -231,5 +245,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  authButton: {
+    backgroundColor: '#e5e7eb',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  authButtonText: {
+    color: '#111',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

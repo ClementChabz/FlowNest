@@ -39,14 +39,16 @@ function ThemedLayout() {
       try {
         const token = await AsyncStorage.getItem('token');
         console.log('🛂 Token détecté :', token);
+
         if (!token) {
-          router.replace('/auth/login'); // ✅ Ne pas mettre .ts(x), juste la route logique
+          // Redirige vers signup uniquement si l’utilisateur n’est pas connecté
+          router.replace('/auth/signup');
         }
       } catch (e) {
         console.error('❌ Erreur auth check :', e);
       } finally {
         setCheckingAuth(false);
-        await SplashScreen.hideAsync(); // ✅ IMPORTANT : cache le splash à la fin
+        await SplashScreen.hideAsync();
       }
     };
 
