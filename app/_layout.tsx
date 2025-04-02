@@ -1,3 +1,5 @@
+// app/_layout.tsx
+
 import { ThemeProvider, useAppTheme } from '../theme/ThemeContext';
 import { Slot, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -35,34 +37,42 @@ function ThemedLayout() {
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+  
     const checkAuth = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
-        console.log('🛂 Token détecté :', token);
-
-        if (!token) {
-          // Redirige vers signup uniquement si l’utilisateur n’est pas connecté
-          router.replace('/auth/signup');
+        console.log('🧾 Token détecté :', token);
+  
+        // On redirige uniquement s'il n'y a pas de token
+        if (!token && isMounted) {
+          router.replace('/auth/login'); // ou signup
         }
+        if (token === null) {
+          console.log('🔍 Token est exactement null');
+        } else if (token === '') {
+          console.log('🔍 Token est une chaîne vide');
+        } else {
+          console.log('✅ Token semble valide :', token);
+        }
+        
       } catch (e) {
         console.error('❌ Erreur auth check :', e);
       } finally {
-        setCheckingAuth(false);
-        await SplashScreen.hideAsync();
+        if (isMounted) {
+          setCheckingAuth(false);
+          SplashScreen.hideAsync();
+        }
       }
     };
-
+  
     checkAuth();
+  
+    return () => {
+      isMounted = false;
+    };
   }, []);
-
-  if (checkingAuth) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
+  
   return (
     <>
       <Slot />
