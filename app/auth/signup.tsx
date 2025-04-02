@@ -15,14 +15,12 @@ export default function SignUpScreen() {
   const router = useRouter();
 
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSignup = async () => {
     try {
       const res = await axios.post('https://flownest.onrender.com/api/auth/signup', {
         email,
-        username, // ✅ Ajouté ici
         password,
       });
 
@@ -43,14 +41,6 @@ export default function SignUpScreen() {
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
-        autoCapitalize="none"
-        style={styles.input}
-      />
-
-      <TextInput
-        placeholder="Nom d'utilisateur"
-        value={username}
-        onChangeText={setUsername}
         autoCapitalize="none"
         style={styles.input}
       />
