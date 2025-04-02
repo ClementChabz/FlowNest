@@ -21,10 +21,10 @@ export default function LoginScreen({ navigation }: Props) {
       const token = res.data.token;
       await AsyncStorage.setItem('token', token);
       Alert.alert('Connexion réussie ✅');
-      navigation.replace('tabs/index'); // ou remplace par `navigation.navigate('index')` si tu as nommé ton écran
+      navigation.navigate('tabs/index'); 
     } catch (err: any) {
-      // 👇 Assure-toi que l'erreur a une réponse
-      const message = err.response?.data?.error || 'Connexion échouée';
+      // reponse a une éventuelle erreur
+      const message = err.response?.data?.error;
       Alert.alert('Erreur', message);
     }
   };
