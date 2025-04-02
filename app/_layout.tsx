@@ -10,11 +10,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [fontsLoaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  if (!loaded) return null;
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <ThemeProvider>
@@ -30,13 +36,20 @@ function ThemedLayout() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        router.replace('./auth/login.tsx');
+      try {
+        const token = await AsyncStorage.getItem('token');
+        console.log('🛂 Token détecté :', token);
+        if (!token) {
+          router.replace('/auth/login'); // ✅ Ne pas mettre .ts(x), juste la route logique
+        }
+      } catch (e) {
+        console.error('❌ Erreur auth check :', e);
+      } finally {
+        setCheckingAuth(false);
+        await SplashScreen.hideAsync(); // ✅ IMPORTANT : cache le splash à la fin
       }
-      setCheckingAuth(false);
-      SplashScreen.hideAsync();
     };
+
     checkAuth();
   }, []);
 
