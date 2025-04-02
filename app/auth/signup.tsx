@@ -9,25 +9,26 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import axios from 'axios';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useRouter } from 'expo-router';
 
-// Type pour navigation (facultatif si en JS)
-type Props = NativeStackScreenProps<any>;
+export default function SignUpScreen() {
+  const router = useRouter();
 
-export default function SignUpScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSignup = async () => {
     try {
       const res = await axios.post('https://flownest.onrender.com/api/auth/signup', {
         email,
+        username, // ✅ Ajouté ici
         password,
       });
 
       if (res.status === 201) {
         Alert.alert('✅ Compte créé', 'Tu peux maintenant te connecter');
-        navigation.navigate('login'); // redirige vers l’écran login
+        router.replace('/auth/login');
       }
     } catch (error: any) {
       Alert.alert('Erreur', error.response?.data?.error || 'Inscription échouée');
@@ -47,6 +48,14 @@ export default function SignUpScreen({ navigation }: Props) {
       />
 
       <TextInput
+        placeholder="Nom d'utilisateur"
+        value={username}
+        onChangeText={setUsername}
+        autoCapitalize="none"
+        style={styles.input}
+      />
+
+      <TextInput
         placeholder="Mot de passe"
         value={password}
         onChangeText={setPassword}
@@ -56,8 +65,8 @@ export default function SignUpScreen({ navigation }: Props) {
 
       <Button title="S’inscrire" onPress={handleSignup} />
 
-      <TouchableOpacity onPress={() => navigation.navigate('login')}>
-        <Text style={styles.link}>Déjà un compte ? Connecte-toi</Text>
+      <TouchableOpacity onPress={() => router.replace('/auth/login')}>
+        <Text style={styles.link}>Déjà un compte ? Se connecter</Text>
       </TouchableOpacity>
     </View>
   );
