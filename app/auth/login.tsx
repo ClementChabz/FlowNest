@@ -3,6 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { router } from 'expo-router';
 
 // 👇 Typage des props de navigation
 type Props = NativeStackScreenProps<any>;
@@ -21,7 +22,7 @@ export default function LoginScreen({ navigation }: Props) {
       const token = res.data.token;
       await AsyncStorage.setItem('token', token);
       Alert.alert('Connexion réussie ✅');
-      // navigation.navigate('tabs/index'); 
+      router.replace('/'); 
     } catch (error: any) {
       Alert.alert('Erreur', error.response?.data?.error || 'Authentification échouée');
     }
