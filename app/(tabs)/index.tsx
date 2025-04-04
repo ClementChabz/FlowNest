@@ -25,6 +25,10 @@ export default function HomeScreen() {
   const circlePosition = useRef(new Animated.Value(isDark ? 1 : 0)).current;
   const [isLoggedIn, setIsLoggedIn] = useState(false);  
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const emojis = ['😄', '😊', '😐', '😔', '😢'];
+  const [moodSet, setMoodSet] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  console.log('NewConsole');
 
 
   useEffect(() => {
@@ -51,11 +55,10 @@ export default function HomeScreen() {
     };
   
     checkToken();
-  }, []);
+  }, [todayKey]);
   
   
 
-  
   useEffect(() => {
     Animated.timing(circlePosition, {
       toValue: isDark ? 1 : 0,
@@ -70,29 +73,47 @@ export default function HomeScreen() {
     outputRange: [4, 48],
   });
 
-  const emojis = ['😄', '😊', '😐', '😔', '😢'];
-  const [moodSet, setMoodSet] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
+useEffect(() => {
+  const checkMood = async () => {
+    const date = dayjs().format("YYYY-MM-DD");
+    const token = await AsyncStorage.getItem('token');
 
-  useEffect(() => {
-    const checkMood = async () => {
-      const saved = await AsyncStorage.getItem(todayKey);
-      if (saved) {
-        setSelected(saved);
+    try {
+      const res = await fetch(`https://flownest.onrender.com/api/moods?date=${date}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const responseText = await res.text();
+      console.log('📦 Réponse brute dans checkMood:', responseText);
+
+      if (res.ok) {
+        const data = JSON.parse(responseText);
+        const mood = data[0]?.mood;
+      
         setMoodSet(true);
+        setSelected(mood);
+        console.log('✅ Humeur récupérée avec succès !', mood);
       } else {
-        setSelected(null);
         setMoodSet(false);
       }
-    };
-    checkMood();
-  }, [todayKey]);
+      
+    } catch (err: any) {
+      console.error('❌ Erreur checkMood :', err.message || err);
+      setMoodSet(false);
+    }
+  };
+
+  checkMood();
+}, [todayKey]);
+
 
 
   const handleSelectMood = async (emoji: string) => {
     const date = dayjs().format('YYYY-MM-DD');
     const token = await AsyncStorage.getItem('token'); // ✅ récupère le token
-  
     try {
       const res = await fetch('https://flownest.onrender.com/api/mood', {
         method: 'POST',
@@ -108,17 +129,24 @@ export default function HomeScreen() {
       });
   
       const responseText = await res.text(); // (optionnel) debug
-      console.log('📦 Réponse brute:', responseText);
+      console.log('📦 Réponse brute dans handleselectionmood:', responseText);
   
-      if (!res.ok) throw new Error('Erreur lors de l\'envoi');
+      if (res.ok) {
+        await AsyncStorage.setItem(`mood-${date}`, emoji);
+        setSelected(emoji);
+        setMoodSet(true);
+        console.log('✅ Humeur enregistrée avec succès !');
+      }
+
+      else{
+        console.error("la requete a été envoyée mais pas recue");
+      }
   
-      await AsyncStorage.setItem(`mood-${date}`, emoji);
-      setSelected(emoji);
-      setMoodSet(true);
+ 
     } catch (err: any) {
-      console.error('❌ Erreur en envoyant l\'humeur :', err.message || err);
+      console.error('❌ Erreur réseau en envoyant l\'humeur dans handleSelectMood:', err.message || err);
     }
-  };
+    };
   
 
   return (
