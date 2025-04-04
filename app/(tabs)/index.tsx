@@ -12,6 +12,7 @@ import { useAppTheme } from '../../theme/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from 'dayjs';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import axios from 'axios';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -20,11 +21,41 @@ export default function HomeScreen() {
   const isDark = theme === 'dark';
   const backgroundColor = isDark ? '#000' : '#fff';
   const textColor = isDark ? '#fff' : '#000';
-  const [fakeDateOffset, setFakeDateOffset] = useState(0);
-  const todayKey = `mood-${dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD')}`;
-
+  const todayKey = `mood-${dayjs().format('YYYY-MM-DD')}`;
   const circlePosition = useRef(new Animated.Value(isDark ? 1 : 0)).current;
+  const [isLoggedIn, setIsLoggedIn] = useState(false);  
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
+
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = await AsyncStorage.getItem('token');
+  
+      if (token) {
+        try {
+          const res = await axios.get('https://flownest.onrender.com/api/me', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+  
+          setUserEmail(res.data.email);
+          setIsLoggedIn(true);
+        } catch (err) {
+          console.error('❌ Erreur récupération utilisateur :', err);
+          setIsLoggedIn(false);
+        }
+      } else {
+        setIsLoggedIn(false);
+      }
+    };
+  
+    checkToken();
+  }, []);
+  
+  
+
+  
   useEffect(() => {
     Animated.timing(circlePosition, {
       toValue: isDark ? 1 : 0,
@@ -55,16 +86,19 @@ export default function HomeScreen() {
       }
     };
     checkMood();
-  }, [fakeDateOffset, todayKey]);
+  }, [todayKey]);
+
 
   const handleSelectMood = async (emoji: string) => {
-    const date = dayjs().add(fakeDateOffset, 'day').format('YYYY-MM-DD');
-
+    const date = dayjs().format('YYYY-MM-DD');
+    const token = await AsyncStorage.getItem('token'); // ✅ récupère le token
+  
     try {
       const res = await fetch('https://flownest.onrender.com/api/mood', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`, // ✅ ajoute ici
         },
         body: JSON.stringify({
           date,
@@ -72,18 +106,23 @@ export default function HomeScreen() {
           note: '',
         }),
       });
-
+  
+      const responseText = await res.text(); // (optionnel) debug
+      console.log('📦 Réponse brute:', responseText);
+  
       if (!res.ok) throw new Error('Erreur lors de l\'envoi');
-
-      await AsyncStorage.setItem(todayKey, emoji);
+  
+      await AsyncStorage.setItem(`mood-${date}`, emoji);
       setSelected(emoji);
       setMoodSet(true);
     } catch (err: any) {
       console.error('❌ Erreur en envoyant l\'humeur :', err.message || err);
     }
   };
+  
 
   return (
+    
     <SafeAreaView style={[styles.container, { backgroundColor }]}>      
       {/* 🌗 Thème */}
       <Pressable
@@ -95,6 +134,34 @@ export default function HomeScreen() {
           {isDark ? '🌚' : '☀️'}
         </Text>
       </Pressable>
+
+{/* used tu clear asyncstorage */}
+      {/* <Pressable
+      onPress={async () => {
+        const keys = await AsyncStorage.getAllKeys();
+        const moodKeys = keys.filter((key) => key.startsWith('mood-'));
+
+        await AsyncStorage.multiRemove(moodKeys);
+        console.log('🧼 Toutes les humeurs ont été supprimées');
+
+        setMoodSet(false);
+        setSelected(null);
+      }}
+      >
+
+      <Text style={{ color: 'red', textAlign: 'center', marginTop: 12 }}>
+        🗑️ Supprimer toutes les humeurs
+      </Text>
+
+      </Pressable> */}
+
+
+      {isLoggedIn && (
+      <Text style={[styles.hi_msg, {color: textColor}]}>
+        Bonjour {userEmail}  👋
+      </Text>
+      )}
+
 
       {/* 🧠 Mood Tracker */}
       {!moodSet && (
@@ -110,32 +177,10 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Simulateur de date */}
-      <View style={{ alignItems: 'center', marginBottom: 24 }}>
-        <Text style={{ color: textColor, fontSize: 14, opacity: 0.7 }}>
-          Date simulée : {dayjs().add(fakeDateOffset, 'day').format('DD MMM YYYY')}
-        </Text>
-
-        <Pressable onPress={() => {
-          setFakeDateOffset(prev => prev + 1);
-        }}>
-          <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 8 }}>
-            ➕ Simuler un jour de plus
-          </Text>
-        </Pressable>
-
-        {fakeDateOffset !== 0 && (
-          <Pressable onPress={() => setFakeDateOffset(0)}>
-            <Text style={{ color: textColor, fontSize: 16, textDecorationLine: 'underline', marginTop: 4 }}>
-              🔁 Revenir à aujourd’hui
-            </Text>
-          </Pressable>
-        )}
-      </View>
-
       {/* Titre */}
+      {!isLoggedIn && (
       <Text style={[styles.title, { color: textColor }]}>Bienvenue sur Flownest 🌿</Text>
-
+      )}
       {/* Boutons principaux */}
       <View style={styles.buttonContainer}>
         <Pressable onPress={() => router.push('/lecture')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
@@ -144,24 +189,51 @@ export default function HomeScreen() {
         <Pressable onPress={() => router.push('/work')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
           <Text style={styles.actionButtonText}>💼 Travail</Text>
         </Pressable>
-        <Pressable onPress={() => router.push('/auth/login')} style={styles.authButton}>
-          <Text style={styles.authButtonText}>🔐 Se connecter</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push('/auth/signup')} style={styles.authButton}>
-          <Text style={styles.authButtonText}>🆕 Créer un compte</Text>
-        </Pressable>
+        {!isLoggedIn && (
+          <>
+            <Pressable onPress={() => router.push('/auth/login')} style={styles.authButton}>
+              <Text style={styles.authButtonText}>🔐 Se connecter</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/auth/signup')} style={styles.authButton}>
+              <Text style={styles.authButtonText}>🆕 Créer un compte</Text>
+            </Pressable>
+          </>
+        )}
       </View>
+
+      {isLoggedIn && (
+  <Pressable
+    onPress={async () => {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('email'); // si tu l’as stocké
+      setIsLoggedIn(false);
+      setUserEmail(null);
+      router.replace('/'); // 👈 redirige vers la page d’accueil ou login
+    }}
+    style={[styles.authButton, { backgroundColor: '#f87171' }]} // rouge pour logout
+  >
+    <Text style={[styles.authButtonText, { color: '#fff' }]}>🚪 Se déconnecter</Text>
+  </Pressable>
+)}
+
+
     </SafeAreaView>
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    flexDirection: 'column',
     padding: 24,
     justifyContent: 'center',
+    gap:20,
   },
   switchContainer: {
+    position: "absolute",
+    top: 60,
+    right: 30,
     flexDirection: 'row',
     alignItems: 'center',
     width: 80,
@@ -183,6 +255,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  hi_msg:{
+    marginTop:30,
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 12 
+  },
+
   moodContainer: {
     marginBottom: 24,
     alignItems: 'center',

@@ -19,6 +19,7 @@ export default function LoginScreen({ navigation }: Props) {
         password,
       });
 
+      const username= res.data.email
       const token = res.data.token;
       await AsyncStorage.setItem('token', token);
       Alert.alert('Connexion réussie ✅');
@@ -51,7 +52,20 @@ export default function LoginScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 24, marginBottom: 16 },
-  input: { borderWidth: 1, marginBottom: 12, padding: 10, borderRadius: 6 },
+  container: { 
+    flex: 1, 
+    padding: 24, 
+    justifyContent: 'center' 
+  },
+
+  title: { 
+    fontSize: 24, 
+    marginBottom: 16 
+  },
+
+  input: { borderWidth: 1, 
+    marginBottom: 12, 
+    padding: 10, 
+    borderRadius: 6 
+  },
 });
