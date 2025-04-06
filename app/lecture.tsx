@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import { useAppTheme } from '../theme/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,10 +13,16 @@ export default function LectureScreen() {
 
   const [sessions, setSessions] = useState<any[]>([]);
 
+  const [modalVisible, setModalVisible] = useState(false);
+const [durationInput, setDurationInput] = useState('');
+const [bookInput, setBookInput] = useState('');
+const [authorInput, setAuthorInput] = useState('');
+
+
   const fetchSessions = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
-
+  
     try {
       const res = await fetch('https://flownest.onrender.com/api/reading-sessions', {
         method: 'GET',
@@ -24,22 +30,36 @@ export default function LectureScreen() {
           Authorization: `Bearer ${token}`,
         },
       });
-
+  
+      const contentType = res.headers.get('content-type');
+  
+      if (!res.ok || !contentType?.includes('application/json')) {
+        const errorText = await res.text();
+        console.error('❌ Erreur API / Réponse non JSON :', errorText);
+        return;
+      }
+  
       const data = await res.json();
-      setSessions(data.slice(0, 5)); // ⏪ les 5 plus récentes
+      setSessions(data.slice(0, 5));
     } catch (err) {
       console.error('❌ Erreur récupération des sessions :', err);
     }
   };
+  
 
   useEffect(() => {
     fetchSessions();
   }, []);
-
   const handleStartSession = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
-
+  
+    const duration = parseInt(durationInput);
+    if (isNaN(duration) || duration <= 0) {
+      Alert.alert("Durée invalide", "Merci d'entrer une durée en minutes.");
+      return;
+    }
+  
     try {
       await fetch('https://flownest.onrender.com/api/reading-sessions', {
         method: 'POST',
@@ -47,14 +67,24 @@ export default function LectureScreen() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ startedAt: new Date().toISOString(), duration: 0 }),
+        body: JSON.stringify({
+          startedAt: new Date().toISOString(),
+          duration,
+          book: bookInput || undefined,
+          author: authorInput || undefined,
+        }),
       });
-
-      fetchSessions(); // 🔄 recharge après ajout
+  
+      setModalVisible(false);
+      setDurationInput('');
+      setBookInput('');
+      setAuthorInput('');
+      fetchSessions();
     } catch (err) {
       console.error('❌ Erreur démarrage session :', err);
     }
   };
+  
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
@@ -63,9 +93,10 @@ export default function LectureScreen() {
         📚 Lecture 📚
       </Text>
 
-      <Pressable onPress={handleStartSession} style={styles.button}>
+      <Pressable onPress={() => setModalVisible(true)} style={styles.button}>
         <Text style={styles.buttonText}>📖 Commencer une session</Text>
       </Pressable>
+
 
       <Text style={[styles.historyTitle, { color: textColor }]}>📜 Dernières sessions :</Text>
 
@@ -78,6 +109,47 @@ export default function LectureScreen() {
           </Text>
         )}
       />
+      <Modal visible={modalVisible} animationType="slide" transparent>
+  <View style={styles.modalOverlay}>
+    <View style={[styles.modalContainer, { backgroundColor }]}>
+      <Text style={[styles.text, { color: textColor }]}>Nouvelle session 📖</Text>
+
+      <TextInput
+        placeholder="Durée (minutes)"
+        keyboardType="numeric"
+        value={durationInput}
+        onChangeText={setDurationInput}
+        style={[styles.input, { color: textColor, borderColor: textColor }]}
+        placeholderTextColor={isDark ? "#999" : "#aaa"}
+      />
+
+      <TextInput
+        placeholder="Titre du livre (optionnel)"
+        value={bookInput}
+        onChangeText={setBookInput}
+        style={[styles.input, { color: textColor, borderColor: textColor }]}
+        placeholderTextColor={isDark ? "#999" : "#aaa"}
+      />
+
+      <TextInput
+        placeholder="Auteur (optionnel)"
+        value={authorInput}
+        onChangeText={setAuthorInput}
+        style={[styles.input, { color: textColor, borderColor: textColor }]}
+        placeholderTextColor={isDark ? "#999" : "#aaa"}
+      />
+
+      <Pressable onPress={handleStartSession} style={styles.button}>
+        <Text style={styles.buttonText}>✅ Démarrer</Text>
+      </Pressable>
+
+      <Pressable onPress={() => setModalVisible(false)} style={[styles.button, { backgroundColor: '#aaa' }]}>
+        <Text style={styles.buttonText}>❌ Annuler</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
+
     </View>
      </SafeAreaView>
   );
@@ -111,4 +183,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 12,
+    width: 250,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(8, 2, 2, 0.5)',
+  },
+  modalContainer: {
+    padding: 20,
+    borderRadius: 12,
+    width: '85%',
+    alignItems: 'center',
+  },
+  
 });

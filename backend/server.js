@@ -6,6 +6,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import Mood from './models/moods.js';
 import User from './models/users.js';
+import ReadingSession from './models/reading.js';
 import authRoutes from './routes/auth.js';
 import verifyToken from './middleware/verifyToken.js';
 
@@ -63,16 +64,22 @@ app.post('/api/mood', verifyToken, async (req, res) => {
 // 🔒 Récupérer l’historique des humeurs (protégé)
 app.get('/api/moods', verifyToken, async (req, res) => {
   const userId = req.user.id;
+  const { date } = req.query;
+
+  const filter = { user: userId };
+  if (date) filter.date = date;
+
+  console.log("🔍 Filtre utilisé:", filter);
 
   try {
-    const moods = await Mood.find({ user: userId })
-      .sort({ date: -1 });
+    const moods = await Mood.find(filter).sort({ date: -1 });
     res.json(moods);
   } catch (error) {
     console.error('❌ GET /api/moods error:', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
 
 // 🔒 Obtenir les infos de l'utilisateur (email)
 app.get('/api/me', verifyToken, async (req, res) => {
@@ -86,6 +93,45 @@ app.get('/api/me', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
+
+// 🔒 Enregistrer une session de lecture (protégé)
+app.post('/api/reading-session', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const { duration, startedAt, book, author } = req.body;
+
+  try {
+    const newSession = new ReadingSession({
+      user: userId,
+      duration,
+      startedAt: startedAt || new Date(),
+      book,
+      author,
+    });
+
+    await newSession.save();
+    res.status(201).json(newSession);
+  } catch (error) {
+    console.error('❌ POST /api/reading-sessions error:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+
+// 🔒 Récupérer les sessions de lecture (protégé)
+app.get('/api/reading-sessions', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const sessions = await ReadingSession.find({ user: userId }).sort({ startedAt: -1 });
+    res.json(sessions);
+  } catch (error) {
+    console.error('❌ GET /api/reading-sessions error:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+
 
 // 🚀 Lancer le serveur
 app.listen(PORT, () => {

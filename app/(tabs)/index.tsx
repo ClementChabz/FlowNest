@@ -6,6 +6,7 @@ import {
   Pressable,
   Animated,
   Easing,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '../../theme/ThemeContext';
@@ -55,7 +56,7 @@ export default function HomeScreen() {
     };
   
     checkToken();
-  }, [todayKey]);
+  }, []);
   
   
 
@@ -73,41 +74,52 @@ export default function HomeScreen() {
     outputRange: [4, 48],
   });
 
-useEffect(() => {
-  const checkMood = async () => {
-    const date = dayjs().format("YYYY-MM-DD");
-    const token = await AsyncStorage.getItem('token');
 
-    try {
-      const res = await fetch(`https://flownest.onrender.com/api/moods?date=${date}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const responseText = await res.text();
-      console.log('📦 Réponse brute dans checkMood:', responseText);
-
-      if (res.ok) {
-        const data = JSON.parse(responseText);
-        const mood = data[0]?.mood;
-      
-        setMoodSet(true);
-        setSelected(mood);
-        console.log('✅ Humeur récupérée avec succès !', mood);
-      } else {
+  useEffect(() => {
+    const checkMood = async () => {
+      const date = dayjs().format("YYYY-MM-DD");
+      console.log("Checkmood date", date);
+      const token = await AsyncStorage.getItem('token');
+  
+      try {
+        const res = await fetch("https://flownest.onrender.com/api/moods", {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+  
+        if (!res.ok) {
+          console.error("❌ Erreur de requête:", res.status);
+          setMoodSet(false);
+          return;
+        }
+  
+        const data = await res.json();
+        console.log("✅ Données reçues:", data);
+  
+        const filtered = data.filter(item => item.date === date);
+        console.log("🎯 Filtré:", filtered);
+  
+        if (filtered.length > 0) {
+          const mood = filtered[0].mood;
+          setMoodSet(true);
+          setSelected(mood);
+          console.log("✅ Humeur récupérée avec succès:", mood);
+        } else {
+          console.log("😕 Aucune humeur trouvée pour cette date.");
+          setMoodSet(false);
+        }
+  
+      } catch (err) {
+        console.error('❌ Erreur dans checkMood:', err.message || err);
         setMoodSet(false);
       }
-      
-    } catch (err: any) {
-      console.error('❌ Erreur checkMood :', err.message || err);
-      setMoodSet(false);
-    }
-  };
-
-  checkMood();
-}, [todayKey]);
+    };
+  
+    checkMood();
+  }, []);
+  
 
 
 
@@ -151,101 +163,76 @@ useEffect(() => {
 
   return (
     
-    <SafeAreaView style={[styles.container, { backgroundColor }]}>      
-      {/* 🌗 Thème */}
-      <Pressable
-        onPress={toggleTheme}
-        style={[styles.switchContainer, { backgroundColor: isDark ? '#333' : '#e4e4e7' }]}
-      >
-        <Animated.View style={[styles.circle, { transform: [{ translateX }] }]} />
-        <Text style={[styles.switchText, { color: textColor }]}>
-          {isDark ? '🌚' : '☀️'}
-        </Text>
-      </Pressable>
-
-{/* used tu clear asyncstorage */}
-      {/* <Pressable
-      onPress={async () => {
-        const keys = await AsyncStorage.getAllKeys();
-        const moodKeys = keys.filter((key) => key.startsWith('mood-'));
-
-        await AsyncStorage.multiRemove(moodKeys);
-        console.log('🧼 Toutes les humeurs ont été supprimées');
-
-        setMoodSet(false);
-        setSelected(null);
-      }}
-      >
-
-      <Text style={{ color: 'red', textAlign: 'center', marginTop: 12 }}>
-        🗑️ Supprimer toutes les humeurs
-      </Text>
-
-      </Pressable> */}
-
-
-      {isLoggedIn && (
-      <Text style={[styles.hi_msg, {color: textColor}]}>
-        Bonjour {userEmail}  👋
-      </Text>
-      )}
-
-
-      {/* 🧠 Mood Tracker */}
-      {!moodSet && (
-        <View style={styles.moodContainer}>
-          <Text style={[styles.subtitle, { color: textColor }]}>Ton humeur aujourd’hui ?</Text>
-          <View style={styles.emojiRow}>
-            {emojis.map((emoji) => (
-              <Pressable key={emoji} onPress={() => handleSelectMood(emoji)}>
-                <Text style={styles.emoji}>{emoji}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* Titre */}
-      {!isLoggedIn && (
-      <Text style={[styles.title, { color: textColor }]}>Bienvenue sur Flownest 🌿</Text>
-      )}
-      {/* Boutons principaux */}
-      <View style={styles.buttonContainer}>
-        <Pressable onPress={() => router.push('/lecture')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
-          <Text style={styles.actionButtonText}>📚 Lecture</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push('/work')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
-          <Text style={styles.actionButtonText}>💼 Travail</Text>
-        </Pressable>
-        {!isLoggedIn && (
-          <>
-            <Pressable onPress={() => router.push('/auth/login')} style={styles.authButton}>
-              <Text style={styles.authButtonText}>🔐 Se connecter</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push('/auth/signup')} style={styles.authButton}>
-              <Text style={styles.authButtonText}>🆕 Créer un compte</Text>
-            </Pressable>
-          </>
-        )}
-      </View>
-
-      {isLoggedIn && (
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+  {/* 🌗 Thème */}
   <Pressable
-    onPress={async () => {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('email'); // si tu l’as stocké
-      setIsLoggedIn(false);
-      setUserEmail(null);
-      router.replace('/'); // 👈 redirige vers la page d’accueil ou login
-    }}
-    style={[styles.authButton, { backgroundColor: '#f87171' }]} // rouge pour logout
+    onPress={toggleTheme}
+    style={[styles.switchContainer, { backgroundColor: isDark ? '#333' : '#e4e4e7' }]}
   >
-    <Text style={[styles.authButtonText, { color: '#fff' }]}>🚪 Se déconnecter</Text>
+    <Animated.View style={[styles.circle, { transform: [{ translateX }] }]} />
+    <Text style={[styles.switchText, { color: textColor }]}>
+      {isDark ? '🌚' : '☀️'}
+    </Text>
   </Pressable>
-)}
 
+  {isLoggedIn && (
+    <Text style={[styles.hi_msg, { color: textColor }]}>
+      Bonjour {userEmail} 👋
+    </Text>
+  )}
 
-    </SafeAreaView>
+  {!moodSet && (
+    <View style={styles.moodContainer}>
+      <Text style={[styles.subtitle, { color: textColor }]}>Ton humeur aujourd’hui ?</Text>
+      <View style={styles.emojiRow}>
+        {emojis.map((emoji) => (
+          <Pressable key={emoji} onPress={() => handleSelectMood(emoji)}>
+            <Text style={styles.emoji}>{emoji}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  )}
+
+  {!isLoggedIn && (
+    <Text style={[styles.title, { color: textColor }]}>Bienvenue sur Flownest 🌿</Text>
+  )}
+
+  <View style={styles.buttonContainer}>
+    <Pressable onPress={() => router.push('/lecture')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
+      <Text style={styles.actionButtonText}>📚 Lecture</Text>
+    </Pressable>
+    <Pressable onPress={() => router.push('/work')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
+      <Text style={styles.actionButtonText}>💼 Travail</Text>
+    </Pressable>
+    {!isLoggedIn && (
+      <>
+        <Pressable onPress={() => router.push('/auth/login')} style={styles.authButton}>
+          <Text style={styles.authButtonText}>🔐 Se connecter</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('/auth/signup')} style={styles.authButton}>
+          <Text style={styles.authButtonText}>🆕 Créer un compte</Text>
+        </Pressable>
+      </>
+    )}
+  </View>
+
+  {isLoggedIn && (
+    <Pressable
+      onPress={async () => {
+        await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('email');
+        setIsLoggedIn(false);
+        setUserEmail(null);
+        router.replace('/');
+      }}
+      style={[styles.authButton, { backgroundColor: '#f87171' }]}
+    >
+      <Text style={[styles.authButtonText, { color: '#fff' }]}>🚪 Se déconnecter</Text>
+    </Pressable>
+  )}
+</SafeAreaView>
+
   );
 }
 
