@@ -52,7 +52,10 @@ const [authorInput, setAuthorInput] = useState('');
   }, []);
   const handleStartSession = async () => {
     const token = await AsyncStorage.getItem('token');
-    if (!token) return;
+    if (!token) {
+      console.warn("⚠️ Aucun token trouvé, annulation de la requête.");
+      return;
+    }
   
     const duration = parseInt(durationInput);
     if (isNaN(duration) || duration <= 0) {
@@ -60,30 +63,44 @@ const [authorInput, setAuthorInput] = useState('');
       return;
     }
   
+    const sessionPayload = {
+      startedAt: new Date().toISOString(),
+      duration,
+      book: bookInput || undefined,
+      author: authorInput || undefined,
+    };
+  
+    console.log("📤 Envoi de la session :", sessionPayload);
+  
     try {
-      await fetch('https://flownest.onrender.com/api/reading-sessions', {
+      const res = await fetch('https://flownest.onrender.com/api/reading-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          startedAt: new Date().toISOString(),
-          duration,
-          book: bookInput || undefined,
-          author: authorInput || undefined,
-        }),
+        body: JSON.stringify(sessionPayload),
       });
   
-      setModalVisible(false);
-      setDurationInput('');
-      setBookInput('');
-      setAuthorInput('');
-      fetchSessions();
-    } catch (err) {
-      console.error('❌ Erreur démarrage session :', err);
+      const responseText = await res.text();
+      console.log('📦 Réponse brute de la requête lecture :', responseText);
+  
+      if (res.ok) {
+        console.log("✅ Session de lecture enregistrée avec succès !");
+        setModalVisible(false);
+        setDurationInput('');
+        setBookInput('');
+        setAuthorInput('');
+        fetchSessions();
+      } else {
+        console.error("❌ La requête a échoué avec le statut :", res.status);
+      }
+  
+    } catch (err: any) {
+      console.error('❌ Erreur réseau en envoyant la session de lecture :', err.message || err);
     }
   };
+  
   
 
   return (
