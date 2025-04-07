@@ -69,7 +69,7 @@ app.get('/api/moods', verifyToken, async (req, res) => {
   const filter = { user: userId };
   if (date) filter.date = date;
 
-  console.log("🔍 Filtre utilisé:", filter);
+  console.log("Je vérifie les humeurs via le filtre utilisé:", filter);
 
   try {
     const moods = await Mood.find(filter).sort({ date: -1 });

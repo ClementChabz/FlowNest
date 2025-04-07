@@ -1,5 +1,4 @@
-// app/_layout.tsx
-
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useAppTheme } from '../theme/ThemeContext';
 import { Slot, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -25,9 +24,11 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <ThemedLayout />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <ThemedLayout />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -38,24 +39,15 @@ function ThemedLayout() {
 
   useEffect(() => {
     let isMounted = true;
-  
+
     const checkAuth = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
         console.log('🧾 Token détecté :', token);
-  
-        // On redirige uniquement s'il n'y a pas de token
+
         if (!token && isMounted) {
-          router.replace('/auth/login'); // ou signup
+          router.replace('/auth/login');
         }
-        if (token === null) {
-          console.log('🔍 Token est exactement null');
-        } else if (token === '') {
-          console.log('🔍 Token est une chaîne vide');
-        } else {
-          console.log('✅ Token semble valide :', token);
-        }
-        
       } catch (e) {
         console.error('❌ Erreur auth check :', e);
       } finally {
@@ -65,14 +57,14 @@ function ThemedLayout() {
         }
       }
     };
-  
+
     checkAuth();
-  
+
     return () => {
       isMounted = false;
     };
   }, []);
-  
+
   return (
     <>
       <Slot />

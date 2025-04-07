@@ -26,9 +26,11 @@ export default function HomeScreen() {
   const circlePosition = useRef(new Animated.Value(isDark ? 1 : 0)).current;
   const [isLoggedIn, setIsLoggedIn] = useState(false);  
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAppReady, setIsAppReady] = useState(false);
   const emojis = ['😄', '😊', '😐', '😔', '😢'];
   const [moodSet, setMoodSet] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);  //emoji de l'humeur du jour pour l'utilisateur porteur du JWT
+  
   console.log('NewConsole');
 
 
@@ -74,50 +76,54 @@ export default function HomeScreen() {
     outputRange: [4, 48],
   });
 
-
   useEffect(() => {
-    const checkMood = async () => {
-      const date = dayjs().format("YYYY-MM-DD");
-      console.log("Checkmood date", date);
-      const token = await AsyncStorage.getItem('token');
-  
+    const initApp = async () => {
       try {
-        const res = await fetch("https://flownest.onrender.com/api/moods", {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const token = await AsyncStorage.getItem('token');
   
-        if (!res.ok) {
-          console.error("❌ Erreur de requête:", res.status);
-          setMoodSet(false);
-          return;
-        }
+        if (token) {
+          try {
+            const res = await axios.get('https://flownest.onrender.com/api/me', {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            setUserEmail(res.data.email);
+            setIsLoggedIn(true);
+          } catch (err) {
+            console.error('❌ Erreur récupération utilisateur :', err);
+            setIsLoggedIn(false);
+          }
   
-        const data = await res.json();
-        console.log("✅ Données reçues:", data);
+          // Check mood
+          const date = dayjs().format("YYYY-MM-DD");
+          const res = await fetch("https://flownest.onrender.com/api/moods", {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` },
+          });
   
-        const filtered = data.filter(item => item.date === date);
-        console.log("🎯 Filtré:", filtered);
+          if (res.ok) {
+            const data = await res.json();
+            const filtered = data.filter(item => item.date === date);
   
-        if (filtered.length > 0) {
-          const mood = filtered[0].mood;
-          setMoodSet(true);
-          setSelected(mood);
-          console.log("✅ Humeur récupérée avec succès:", mood);
+            if (filtered.length > 0) {
+              setMoodSet(true);
+              setSelected(filtered[0].mood);
+            } else {
+              setMoodSet(false);
+            }
+          } else {
+            setMoodSet(false);
+          }
         } else {
-          console.log("😕 Aucune humeur trouvée pour cette date.");
-          setMoodSet(false);
+          setIsLoggedIn(false);
         }
-  
-      } catch (err) {
-        console.error('❌ Erreur dans checkMood:', err.message || err);
-        setMoodSet(false);
+      } catch (e) {
+        console.error('Erreur initApp:', e);
+      } finally {
+        setIsAppReady(true); // ✅ Affiche enfin l’UI
       }
     };
   
-    checkMood();
+    initApp();
   }, []);
   
 
@@ -160,7 +166,42 @@ export default function HomeScreen() {
     }
     };
   
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
+    useEffect(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.2,
+            duration: 1000,
+            useNativeDriver: true,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+            easing: Easing.inOut(Easing.ease),
+          }),
+        ])
+      ).start();
+    }, []);
+    
+
+    if (!isAppReady) {
+      return (
+        <SafeAreaView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
+          <Animated.Text style={{ fontSize: 32, transform: [{ scale: scaleAnim }] }}>
+            🐢 
+          </Animated.Text>
+          <Animated.Text style={{color: textColor, fontfontSize: 32, transform: [{ scale: scaleAnim }] }}>
+            Chargement de ton profil de jeune tortue
+          </Animated.Text>
+        </SafeAreaView>
+      );
+    }
+    
+    
   return (
     
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
