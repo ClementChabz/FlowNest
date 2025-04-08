@@ -15,6 +15,20 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+
+// Auto-ping pour éviter la mise en veille
+const SELF_URL_PING = process.env.RENDER_EXTERNAL_URL
+  ? `https://${process.env.RENDER_EXTERNAL_URL}/ping`
+  : `http://localhost:${PORT}/ping`;
+
+setInterval(() => {
+  axios.get(SELF_URL_PING)
+    .then(() => console.log('⏱️ selfping'))
+    .catch((err) => console.error('❌ Self-ping error :', err.message));
+}, 10 * 60 * 1000); // every ten min
+
+
+
 // 🔧 Middleware
 app.use(cors());
 app.use(express.json());
@@ -27,6 +41,7 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connexion MongoDB réussie'))
   .catch((err) => console.error('❌ Erreur MongoDB :', err));
+
 
 // 🔒 Enregistrer ou mettre à jour une humeur (protégé)
 app.post('/api/mood', verifyToken, async (req, res) => {
@@ -140,6 +155,13 @@ app.listen(PORT, () => {
     : `http://localhost:${PORT}`;
   console.log(`🚀 Backend lancé sur ${baseURL}`);
 });
+
+
+//ping  
+app.get('/ping', (req, res) => {
+  res.json({ message: 'pong' });
+}); 
+
 
 // 🧼 Fermeture propre (SIGINT)
 process.on('SIGINT', async () => {
