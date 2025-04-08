@@ -40,7 +40,7 @@ export default function ExploreScreen() {
 
   const [thisMonthStats, setThisMonthStats] = useState({ count: 0, total: 0 });
   const [deltaMinutes, setDeltaMinutes] = useState<number | null>(null);
-  console.log("Je suis dans l'écran X")
+  console.log("Je suis dans l'écran exolore")
   const fetchReadingStats = async () => {  //pour aller fetch les stats de lecture propre à l'utilisateur pour le mois courant et dernier pour utiliser lors de l'affichage !
     try {
       const token = await AsyncStorage.getItem('token');

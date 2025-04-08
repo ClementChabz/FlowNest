@@ -1,13 +1,14 @@
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useAppTheme } from '../theme/ThemeContext';
-import { Slot, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AuthProvider, useAuth } from '../context/authContext'; 
+import { AuthProvider, useAuth } from '../context/authContext';
+import { Slot, usePathname, router } from 'expo-router';
+import BottomTabsContainer from '@/components/BottomTabsContainer'; // 👈 ton composant TabBar
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,7 +27,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider> {/* ✅ CONTEXTE global auth */}
+      <AuthProvider>
         <ThemeProvider>
           <ThemedLayout />
         </ThemeProvider>
@@ -37,10 +38,10 @@ export default function RootLayout() {
 
 function ThemedLayout() {
   const { theme } = useAppTheme();
-  const { setIsLoggedIn } = useAuth(); // ✅ on récupère la fonction du contexte
-  const router = useRouter();
+  const { setIsLoggedIn } = useAuth();
   const [checkingAuth, setCheckingAuth] = useState(true);
-  console.log("Je suis dans l'écran X")
+  const pathname = usePathname(); // 👈 permet de savoir sur quelle page on est
+
   useEffect(() => {
     let isMounted = true;
 
@@ -53,13 +54,10 @@ function ThemedLayout() {
           setIsLoggedIn(true);
         } else if (isMounted) {
           setIsLoggedIn(false);
-        
-          // 🔁 NAVIGATION retardée pour éviter l'erreur
           setTimeout(() => {
             router.replace('/auth/login');
           }, 0);
         }
-        
       } catch (e) {
         console.error('❌ Erreur auth check :', e);
       } finally {
@@ -77,7 +75,6 @@ function ThemedLayout() {
     };
   }, []);
 
-  // Loader pendant le check auth
   if (checkingAuth) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -86,14 +83,13 @@ function ThemedLayout() {
     );
   }
 
+  const shouldHideTabs = pathname.startsWith('/auth');
+
   return (
-    
     <>
       <Slot />
+      {!shouldHideTabs && <BottomTabsContainer />} 
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      
     </>
-
-    
   );
 }

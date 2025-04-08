@@ -20,7 +20,7 @@ import { red } from 'react-native-reanimated/lib/typescript/Colors';
 export default function HomeScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useAppTheme();
-  console.log("Je suis dans l'écran X")
+  console.log("Je suis dans l'écran index")
   const isDark = theme === 'dark';
   const backgroundColor = isDark ? '#000' : '#fff';
   const textColor = isDark ? '#fff' : '#000';
@@ -184,7 +184,7 @@ export default function HomeScreen() {
       Animated.loop(
         Animated.sequence([
           Animated.timing(scaleAnim, {
-            toValue: 1.2,
+            toValue: 1.1,
             duration: 1000,
             useNativeDriver: true,
             easing: Easing.inOut(Easing.ease),

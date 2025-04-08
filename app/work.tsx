@@ -4,7 +4,7 @@ import { useAppTheme } from '../theme/ThemeContext';
 export default function WorkScreen() {
   const { theme } = useAppTheme();
   const isDark = theme === 'dark';
-
+  console.log("Je suis dans l'écran X")
   const backgroundColor = isDark ? '#000' : '#fff';
   const textColor = isDark ? '#fff' : '#000';
 
