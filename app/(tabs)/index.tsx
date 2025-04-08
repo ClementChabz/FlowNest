@@ -14,11 +14,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from 'dayjs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
+import { red } from 'react-native-reanimated/lib/typescript/Colors';
+
 
 export default function HomeScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useAppTheme();
-
+  console.log("Je suis dans l'écran X")
   const isDark = theme === 'dark';
   const backgroundColor = isDark ? '#000' : '#fff';
   const textColor = isDark ? '#fff' : '#000';
@@ -27,7 +29,17 @@ export default function HomeScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);  
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isAppReady, setIsAppReady] = useState(false);
-  const emojis = ['😄', '😊', '😐', '😔', '😢'];
+  const emojis = [
+    '🤩', // euphoriquement bien
+    '🙂', // content
+    '😐', // neutre
+    '😕', // un peu mal
+    '😣', // stressé
+    '😢', // très triste
+    '😡', // en colère
+    '🥱', // fatigué
+  ];
+  
   const [moodSet, setMoodSet] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);  //emoji de l'humeur du jour pour l'utilisateur porteur du JWT
   
@@ -101,7 +113,7 @@ export default function HomeScreen() {
           });
   
           if (res.ok) {
-            const data = await res.json();
+            const data: { date: string; mood: string }[] = await res.json();
             const filtered = data.filter(item => item.date === date);
   
             if (filtered.length > 0) {
@@ -194,7 +206,7 @@ export default function HomeScreen() {
           <Animated.Text style={{ fontSize: 32, transform: [{ scale: scaleAnim }] }}>
             🐢 
           </Animated.Text>
-          <Animated.Text style={{color: textColor, fontfontSize: 32, transform: [{ scale: scaleAnim }] }}>
+          <Animated.Text style={{color: textColor, fontSize: 32, transform: [{ scale: scaleAnim }] }}>
             Chargement de ton profil de jeune tortue
           </Animated.Text>
         </SafeAreaView>
@@ -222,9 +234,9 @@ export default function HomeScreen() {
     </Text>
   )}
 
-  {!moodSet && (
+  {!moodSet && isLoggedIn &&(
     <View style={styles.moodContainer}>
-      <Text style={[styles.subtitle, { color: textColor }]}>Ton humeur aujourd’hui ?</Text>
+      <Text style={[styles.subtitle, { color: textColor }]}>Quelle est ton humeur aujourd’hui ?</Text>
       <View style={styles.emojiRow}>
         {emojis.map((emoji) => (
           <Pressable key={emoji} onPress={() => handleSelectMood(emoji)}>
@@ -235,9 +247,19 @@ export default function HomeScreen() {
     </View>
   )}
 
+
+
   {!isLoggedIn && (
     <Text style={[styles.title, { color: textColor }]}>Bienvenue sur Flownest 🌿</Text>
   )}
+
+  {!isLoggedIn &&(
+      <View style={styles.moodContainer}>
+        <Text style={[styles.herotag]}>Connecte-toi pour transformer tes journées en progrès.</Text>
+      </View>
+    )}
+
+
 
   <View style={styles.buttonContainer}>
     <Pressable onPress={() => router.push('/lecture')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
@@ -319,17 +341,32 @@ const styles = StyleSheet.create({
   },
 
   moodContainer: {
-    marginBottom: 24,
+    padding: 20,
+    width: '105%',
+    borderRadius: 2,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // couche translucide
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 2, // pour Android
     alignItems: 'center',
+    marginBottom: 24,
+    alignSelf: 'center',
   },
+  
   emojiRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 12,
     marginTop: 8,
   },
   emoji: {
-    fontSize: 28,
+    fontSize: 25,
   },
   title: {
     fontSize: 26,
@@ -372,4 +409,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  herotag:{
+    color: '#10b981',
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '500',
+  }
 });

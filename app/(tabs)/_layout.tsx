@@ -10,7 +10,7 @@ import { useAppTheme } from '../../theme/ThemeContext';
 export default function TabLayout() {
   const { theme, themeKey } = useAppTheme(); // 👈 important
   const colorScheme = theme ?? 'light';
-
+  console.log("Je suis dans l'écran layoutab")
   return (
     <Tabs
       key={themeKey} // 👈 FORCE le re-render quand le thème change
@@ -48,5 +48,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    
   );
 }

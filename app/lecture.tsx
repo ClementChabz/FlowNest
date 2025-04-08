@@ -3,10 +3,13 @@ import { View, Text, StyleSheet, Pressable, FlatList, Modal, TextInput, Alert, S
 import { useAppTheme } from '../theme/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AuthProvider, useAuth } from '../context/authContext'; 
+
 
 export default function LectureScreen() {
   const { theme } = useAppTheme();
   const isDark = theme === 'dark';
+  const { isLoggedIn } = useAuth();
 
   const backgroundColor = isDark ? '#000' : '#fff';
   const textColor = isDark ? '#fff' : '#000';
@@ -14,9 +17,9 @@ export default function LectureScreen() {
   const [sessions, setSessions] = useState<any[]>([]);
 
   const [modalVisible, setModalVisible] = useState(false);
-const [durationInput, setDurationInput] = useState('');
-const [bookInput, setBookInput] = useState('');
-const [authorInput, setAuthorInput] = useState('');
+  const [durationInput, setDurationInput] = useState('');
+  const [bookInput, setBookInput] = useState('');
+  const [authorInput, setAuthorInput] = useState('');
 
 
   const fetchSessions = async () => {
@@ -50,10 +53,14 @@ const [authorInput, setAuthorInput] = useState('');
   useEffect(() => {
     fetchSessions();
   }, []);
+
+
+
   const handleStartSession = async () => {
     const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      console.warn("⚠️ Aucun token trouvé, annulation de la requête.");
+    if (!token && isLoggedIn) {
+      console.warn("⚠️ Vous êtes connecté mais aucun token trouvé, annulation de la requête, veuillez vous déconnecter puis vous reconnecter.");
+      Alert.alert("⚠️ Vous êtes connecté mais aucun token trouvé, annulation de la requête, veuillez vous déconnecter puis vous reconnecter.");
       return;
     }
   
@@ -127,48 +134,55 @@ const [authorInput, setAuthorInput] = useState('');
         )}
       />
       <Modal visible={modalVisible} animationType="slide" transparent>
-  <View style={styles.modalOverlay}>
-    <View style={[styles.modalContainer, { backgroundColor }]}>
-      <Text style={[styles.text, { color: textColor }]}>Nouvelle session 📖</Text>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { backgroundColor }]}>
+            <Text style={[styles.text, { color: textColor }]}>Nouvelle session 📖</Text>
 
-      <TextInput
-        placeholder="Durée (minutes)"
-        keyboardType="numeric"
-        value={durationInput}
-        onChangeText={setDurationInput}
-        style={[styles.input, { color: textColor, borderColor: textColor }]}
-        placeholderTextColor={isDark ? "#999" : "#aaa"}
-      />
+            <TextInput
+              placeholder="Durée (minutes)"
+              keyboardType="numeric"
+              value={durationInput}
+              onChangeText={setDurationInput}
+              style={[styles.input, { color: textColor, borderColor: textColor }]}
+              placeholderTextColor={isDark ? "#999" : "#aaa"}
+            />
 
-      <TextInput
-        placeholder="Titre du livre (optionnel)"
-        value={bookInput}
-        onChangeText={setBookInput}
-        style={[styles.input, { color: textColor, borderColor: textColor }]}
-        placeholderTextColor={isDark ? "#999" : "#aaa"}
-      />
+            <TextInput
+              placeholder="Titre du livre (optionnel)"
+              value={bookInput}
+              onChangeText={setBookInput}
+              style={[styles.input, { color: textColor, borderColor: textColor }]}
+              placeholderTextColor={isDark ? "#999" : "#aaa"}
+            />
 
-      <TextInput
-        placeholder="Auteur (optionnel)"
-        value={authorInput}
-        onChangeText={setAuthorInput}
-        style={[styles.input, { color: textColor, borderColor: textColor }]}
-        placeholderTextColor={isDark ? "#999" : "#aaa"}
-      />
+            <TextInput
+              placeholder="Auteur (optionnel)"
+              value={authorInput}
+              onChangeText={setAuthorInput}
+              style={[styles.input, { color: textColor, borderColor: textColor }]}
+              placeholderTextColor={isDark ? "#999" : "#aaa"}
+            />
 
-      <Pressable onPress={handleStartSession} style={styles.button}>
-        <Text style={styles.buttonText}>✅ Démarrer</Text>
-      </Pressable>
+            <Pressable onPress={handleStartSession} style={styles.button}>
+              <Text style={styles.buttonText}>✅ Démarrer</Text>
+            </Pressable>
+            {!isLoggedIn && (
+              <Text style={styles.errorText}>
+                Connectez-vous pour accéder à cette fonctionnalité.
+              </Text>
+            )}
 
-      <Pressable onPress={() => setModalVisible(false)} style={[styles.button, { backgroundColor: '#aaa' }]}>
-        <Text style={styles.buttonText}>❌ Annuler</Text>
-      </Pressable>
+
+
+            <Pressable onPress={() => setModalVisible(false)} style={[styles.button, { backgroundColor: '#aaa' }]}>
+              <Text style={styles.buttonText}>❌ Annuler</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
     </View>
-  </View>
-</Modal>
-
-    </View>
-     </SafeAreaView>
+    </SafeAreaView>
   );
 }
 
@@ -218,6 +232,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: '85%',
     alignItems: 'center',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 8,
+    textAlign: 'center',
+    fontSize: 14,
   },
   
 });

@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function NotFoundScreen() {
+  console.log("Je suis dans l'écran X")
   return (
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />

@@ -40,7 +40,7 @@ export default function ExploreScreen() {
 
   const [thisMonthStats, setThisMonthStats] = useState({ count: 0, total: 0 });
   const [deltaMinutes, setDeltaMinutes] = useState<number | null>(null);
-
+  console.log("Je suis dans l'écran X")
   const fetchReadingStats = async () => {  //pour aller fetch les stats de lecture propre à l'utilisateur pour le mois courant et dernier pour utiliser lors de l'affichage !
     try {
       const token = await AsyncStorage.getItem('token');
@@ -179,14 +179,18 @@ export default function ExploreScreen() {
 
   const moodColor = (mood: string) => {
     switch (mood) {
-      case '😄': return '#4ade80';
-      case '😊': return '#a3e635';
-      case '😐': return '#facc15';
-      case '😔': return '#f97316';
-      case '😢': return '#ef4444';
+      case '🤩': return '#22c55e'; // vert vif - euphorique
+      case '🙂': return '#a3e635'; // vert citron - content
+      case '😐': return '#facc15'; // jaune - neutre
+      case '😕': return '#fcd34d'; // jaune doux - un peu mal
+      case '😣': return '#f97316'; // orange - stressé
+      case '😢': return '#ef4444'; // rouge - très triste
+      case '😡': return '#dc2626'; // rouge foncé - en colère
+      case '🥱': return '#94a3b8'; // gris bleuté - fatigué
       default: return 'transparent';
     }
   };
+  
 
   const renderMonth = ({ item }: { item: { label: string; weeks: (string | null)[][] } }) => (
     <View style={[styles.monthContainer, { width: screenWidth }]}>
