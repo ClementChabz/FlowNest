@@ -160,6 +160,7 @@ app.listen(PORT, () => {
 //ping  
 app.get('/ping', (req, res) => {
   res.json({ message: 'pong' });
+  console.log('Ping reçu')
 }); 
 
 

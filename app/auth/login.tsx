@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -47,25 +47,36 @@ export default function LoginScreen({ navigation }: Props) {
         secureTextEntry
       />
       <Button title="Se connecter" onPress={handleLogin} />
+
+      <TouchableOpacity onPress={() => router.replace('/auth/signup')}>
+        <Text style={styles.link}>Pas encore de compte ? S'inscrire</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 24, 
-    justifyContent: 'center' 
+  container: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
   },
-
-  title: { 
-    fontSize: 24, 
-    marginBottom: 16 
+  title: {
+    fontSize: 24,
+    marginBottom: 24,
+    textAlign: 'center',
   },
-
-  input: { borderWidth: 1, 
-    marginBottom: 12, 
-    padding: 10, 
-    borderRadius: 6 
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
+  },
+  link: {
+    marginTop: 16,
+    color: '#3b82f6',
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
