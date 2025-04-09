@@ -9,7 +9,7 @@ import User from './models/users.js';
 import ReadingSession from './models/reading.js';
 import authRoutes from './routes/auth.js';
 import verifyToken from './middleware/verifyToken.js';
-
+import axios from 'axios';
 
 dotenv.config();
 
