@@ -128,13 +128,13 @@ app.get('/ping', (req, res) => {
 // 🚀 Lancement serveur + 🔁 auto-ping activé après
 app.listen(PORT, () => {
   const baseURL = process.env.RENDER_EXTERNAL_URL
-    ? `https://${process.env.RENDER_EXTERNAL_URL}`
+    ? `${process.env.RENDER_EXTERNAL_URL}`
     : `http://localhost:${PORT}`;
 
   console.log(`🚀 Backend lancé sur ${baseURL}`);
 
   if (process.env.RENDER_EXTERNAL_URL) {
-    const SELF_URL_PING = `https://${process.env.RENDER_EXTERNAL_URL}/ping`;
+    const SELF_URL_PING = `${process.env.RENDER_EXTERNAL_URL}/ping`;
 
     setInterval(() => {
       axios
