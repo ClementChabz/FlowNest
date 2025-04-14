@@ -9,6 +9,9 @@ import axios from 'axios';
 import Mood from './models/moods.js';
 import User from './models/users.js';
 import ReadingSession from './models/reading.js';
+import SportSession from './models/sport.js';
+
+
 import authRoutes from './routes/auth.js';
 import verifyToken from './middleware/verifyToken.js';
 
@@ -118,6 +121,59 @@ app.get('/api/reading-sessions', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
+
+// 🔒 Enregistrer une session de sport
+app.post('/api/sport-session', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const {
+    sport,
+    intensity,
+    duration,
+    startedAt,
+    type,
+    series,
+    repsPerSerie,
+    sameReps
+  } = req.body;
+
+  try {
+    const newSession = new SportSession({
+      user: userId,
+      sport,
+      intensity,
+      duration,
+      startedAt: startedAt || new Date(),
+      type,
+      series,
+      repsPerSerie,
+      sameReps,
+    });
+
+    await newSession.save();
+    res.status(201).json(newSession);
+  } catch (error) {
+    console.error('❌ POST /api/sport-session error:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// 🔒 Récupérer les sessions de sport
+app.get('/api/sport-sessions', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const sessions = await SportSession.find({ user: userId }).sort({ startedAt: -1 });
+    res.json(sessions);
+  } catch (error) {
+    console.error('❌ GET /api/sport-sessions error:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+
+
+
 
 // 🔁 Route ping
 app.get('/ping', (req, res) => {

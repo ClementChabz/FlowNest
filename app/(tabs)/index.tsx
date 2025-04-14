@@ -15,6 +15,7 @@ import dayjs from 'dayjs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { red } from 'react-native-reanimated/lib/typescript/Colors';
+import LottieView from 'lottie-react-native'; //pour l'animation de loading 
 
 
 export default function HomeScreen() {
@@ -43,6 +44,8 @@ export default function HomeScreen() {
   const [moodSet, setMoodSet] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);  //emoji de l'humeur du jour pour l'utilisateur porteur du JWT
   
+
+
   console.log('NewConsole');
 
 
@@ -199,18 +202,20 @@ export default function HomeScreen() {
       ).start();
     }, []);
     
-
+    // if (!isAppReady) {
+    //   return (
+    //     <SafeAreaView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
+    //       <Animated.Text style={{ fontSize: 32, transform: [{ scale: scaleAnim }] }}>
+    //         🐢 
+    //       </Animated.Text>
+    //       <Animated.Text style={{color: textColor, fontSize: 32, transform: [{ scale: scaleAnim }] }}>
+    //         Chargement de ton profil de jeune tortue
+    //       </Animated.Text>
+    //     </SafeAreaView>
+    //   );
+    // }
     if (!isAppReady) {
-      return (
-        <SafeAreaView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
-          <Animated.Text style={{ fontSize: 32, transform: [{ scale: scaleAnim }] }}>
-            🐢 
-          </Animated.Text>
-          <Animated.Text style={{color: textColor, fontSize: 32, transform: [{ scale: scaleAnim }] }}>
-            Chargement de ton profil de jeune tortue
-          </Animated.Text>
-        </SafeAreaView>
-      );
+      return <SplashScreen backgroundColor={backgroundColor} />;
     }
     
     
@@ -268,6 +273,14 @@ export default function HomeScreen() {
     <Pressable onPress={() => router.push('/work')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
       <Text style={styles.actionButtonText}>💼 Travail</Text>
     </Pressable>
+    <Pressable onPress={() => router.push('/sport')} style={[styles.actionButton, isDark && styles.actionButtonDark]}>
+      <Text style={styles.actionButtonText}>🏅 Sport</Text>
+    </Pressable>
+
+
+
+
+
     {!isLoggedIn && (
       <>
         <Pressable onPress={() => router.push('/auth/login')} style={styles.authButton}>
@@ -416,3 +429,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   }
 });
+
+
+
+const SplashScreen = ({ backgroundColor }: { backgroundColor: string }) => {
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
+      <LottieView
+        source={require('../../assets/lottie/loading.json')}
+        autoPlay
+        loop
+        style={{ width: 200, height: 200 }}
+      />
+      <Text style={{ marginTop: 20, fontSize: 18, color: '#888' }}>
+        Chargement de ton profil ...
+      </Text>
+    </SafeAreaView>
+  );
+};

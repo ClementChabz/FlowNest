@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { ScrollView } from 'react-native-gesture-handler';
+import LottieView from 'lottie-react-native'; //pour l'animation de loading 
 dayjs.extend(isBetween);
 
 
@@ -230,12 +231,9 @@ export default function ExploreScreen() {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </SafeAreaView>
-    );
+    return <SplashScreen backgroundColor={backgroundColor} />;
   }
+  
 
   return (
 
@@ -403,3 +401,21 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 });
+
+
+const SplashScreen = ({ backgroundColor }: { backgroundColor: string }) => {
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor, justifyContent: 'center', alignItems: 'center' }]}>
+      <LottieView
+        source={require('../../assets/lottie/loading.json')}
+        autoPlay
+        loop
+        style={{ width: 200, height: 200 }}
+      />
+      <Text style={{ marginTop: 20, fontSize: 18, color: '#888' }}>
+        Chargement des statistiques de ton profil
+      </Text>
+    </SafeAreaView>
+  );
+};
