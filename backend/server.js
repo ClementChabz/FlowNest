@@ -9,7 +9,7 @@ import axios from 'axios';
 import Mood from './models/moods.js';
 import User from './models/users.js';
 import ReadingSession from './models/reading.js';
-import SportSession from './models/sport.js';
+import SportSession from './models/sports.js';
 
 
 import authRoutes from './routes/auth.js';
